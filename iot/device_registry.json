@@ -1,0 +1,26 @@
+{
+  "dev-gobustan-solar": {
+    "asset_id": "gobustan-solar",
+    "public_key": "ae343553cf27bc9c982b0e86bc6e88dc3547f571d176720263adac0b2cf57ec4"
+  },
+  "dev-bilasuvar-solar": {
+    "asset_id": "bilasuvar-solar",
+    "public_key": "54119bd1e5ea5b6f47ca787e61fc4d29418ab788ae00aea54a0b33733dd00629"
+  },
+  "dev-nakhchivan-solar": {
+    "asset_id": "nakhchivan-solar",
+    "public_key": "f9ff6f8160fe9ad761a13e05aafdf15cddae44ed167819bf729a8d1f020824f3"
+  },
+  "dev-sumgait-rooftop": {
+    "asset_id": "sumgait-rooftop",
+    "public_key": "d05531ae9b7ee13e30e962b137115475d3a94e8bbf9a2b1580d7a624e6133c66"
+  },
+  "dev-khizi-wind": {
+    "asset_id": "khizi-wind",
+    "public_key": "029ea9ac21c35ee4057c84ca1593f6b67c6c5275a30f89d73cbe147f581f91a0"
+  },
+  "dev-absheron-wind": {
+    "asset_id": "absheron-wind",
+    "public_key": "371569f300e1638b644036b558c0d82c80a88f5816c3d13265c37b12e7c10d27"
+  }
+}

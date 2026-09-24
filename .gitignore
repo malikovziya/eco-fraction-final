@@ -17,3 +17,6 @@ contracts/typechain-types/
 .env.local
 *.log
 logs/
+
+# Device private keys (generated on first run)
+iot/.keys/

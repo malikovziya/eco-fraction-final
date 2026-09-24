@@ -12,5 +12,10 @@ foreach ($port in 3000, 8100) {
         taskkill /T /F /PID $procId 2>&1 | Out-Null
     }
 }
+# IoT services have no port; find them by command line
+Get-CimInstance Win32_Process -Filter "Name='python.exe'" |
+    Where-Object { $_.CommandLine -match '-m iot\.(simulator|bridge)' } |
+    ForEach-Object { taskkill /T /F /PID $_.ProcessId 2>&1 | Out-Null }
+
 cmd /c "docker compose -f `"$root\infra\docker-compose.yml`" down 2>&1"
 Write-Host 'Eco-Fraction stopped.' -ForegroundColor Green
