@@ -107,6 +107,27 @@ def main() -> None:
     http.post("/invest", headers=judge, json={"asset_id": "gobustan-solar", "shares": 5}).raise_for_status()
     ok(f"new user {email}: blocked before KYC, then KYC → deposit $100 → bought 5 shares")
 
+    # 10. Secondary market: Aylin lists, the judge buys part of it
+    lst = http.post("/market/list", headers=aylin, json={"asset_id": "gobustan-solar", "shares": 20, "price_usdc": 10.4}).raise_for_status().json()
+    http.post("/wallet/deposit", headers=judge, json={"amount": 500}).raise_for_status()
+    fill = http.post("/market/buy", headers=judge, json={"listing_id": lst["listing_id"], "shares": 8}).raise_for_status().json()
+    ok(f"marketplace: listed 20 @ $10.40, judge bought 8 for ${fill['cost_usdc']} (fee ${fill['fee_usdc']})")
+    http.post("/market/cancel", headers=aylin, json={"listing_id": lst["listing_id"]}).raise_for_status()
+
+    # 11. Open Banking: consent -> OTP -> on-chain deposit and withdrawal
+    for kind, amount in (("deposit", 250), ("withdraw", 100)):
+        c = http.post("/banking/consents", headers=judge, json={"bank_id": "caspian", "type": kind, "amount": amount}).raise_for_status().json()
+        assert http.post(f"/banking/consents/{c['consent_id']}/authorize", headers=judge, json={"otp": "000000"}).status_code == 401
+        r = http.post(f"/banking/consents/{c['consent_id']}/authorize", headers=judge, json={"otp": c["sandbox_otp"]}).raise_for_status().json()
+        ok(f"open banking {kind} ${amount}: wrong OTP refused, then settled ref {r['reference']} tx {r['tx_hash'][:12]}…")
+
+    # 12. Producer dashboard + report, economics
+    prod = login("absheron-wind")
+    ov = http.get("/producer/overview", headers=prod).raise_for_status().json()
+    http.get("/producer/report/khizi-wind", headers=prod).raise_for_status()
+    econ = http.get("/platform/economics").json()
+    ok(f"producer raised ${ov['raised_total_usdc']:,.0f} from {ov['investors_total']} investors; treasury ${econ['live']['treasury_usdc']:,.2f}")
+
     esg = http.get("/assets/khizi-wind/esg").json()
     ok(f"Khizi ESG {esg['score']} ({esg['rating']}): E {esg['pillars']['E']['score']} "
        f"S {esg['pillars']['S']['score']} G {esg['pillars']['G']['score']}")

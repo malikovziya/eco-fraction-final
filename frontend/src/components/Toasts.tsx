@@ -55,7 +55,7 @@ export function Toasts() {
   });
 
   return (
-    <div className="pointer-events-none fixed right-4 top-20 z-50 flex w-80 flex-col gap-2">
+    <div className="pointer-events-none fixed right-4 top-20 z-50 print:hidden flex w-80 flex-col gap-2">
       <AnimatePresence>
         {toasts.map((x) => (
           <motion.div key={x.id} layout initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }}

@@ -138,3 +138,64 @@ def seed_portfolio(s, user: User, allocations: dict[int, int]) -> None:
 
 
 market = Market()
+
+
+class MarketMaker:
+    """Keeps the secondary market liquid: background holders list shares near NAV ($10) and
+    background buyers occasionally fill them, so the order book and trade tape are never empty."""
+
+    MIN_LISTINGS, MAX_LISTINGS = 8, 14
+
+    def __init__(self):
+        self.rng = random.Random(7)
+
+    def start(self) -> None:
+        threading.Thread(target=self._run, name="market-maker", daemon=True).start()
+
+    def _run(self) -> None:
+        from ..trading import create_listing, fill_listing, listings
+
+        while not market.ready:  # wait until the background investors exist
+            time.sleep(3)
+        while True:
+            try:
+                with SessionLocal() as s:
+                    open_listings = [l for l in listings(s) if l["available"] > 0]
+                    synthetic = s.scalars(select(User).where(User.synthetic, User.title == "Individual investor")).all()
+                    if len(open_listings) < self.MIN_LISTINGS or (
+                            len(open_listings) < self.MAX_LISTINGS and self.rng.random() < 0.4):
+                        self._list_one(s, synthetic, create_listing)
+                    elif self.rng.random() < 0.45:
+                        cheap = [l for l in open_listings if l["price_usdc"] <= 10.5 and l["seller_id"] is not None]
+                        if cheap:
+                            l = self.rng.choice(cheap)
+                            buyer = self.rng.choice([u for u in synthetic if u.id != l["seller_id"]])
+                            shares = max(1, int(l["available"] * self.rng.uniform(0.3, 1.0)))
+                            self._fund(buyer, shares * l["price_usdc"])
+                            fill_listing(s, buyer, l["id"], shares)
+            except Exception as e:
+                print(f"[market-maker] skipped a cycle: {e!r}", flush=True)
+            time.sleep(self.rng.uniform(4, 9))
+
+    def _list_one(self, s, synthetic: list, create_listing) -> None:
+        c = chain()
+        for _ in range(10):  # find a holder with shares
+            user = self.rng.choice(synthetic)
+            balances = c.c["token"].functions.balanceOfBatch([user.wallet_address] * 6, list(range(1, 7))).call()
+            held = [(t + 1, b) for t, b in enumerate(balances) if b >= 5]
+            if held:
+                token_id, balance = self.rng.choice(held)
+                shares = max(5, int(balance * self.rng.uniform(0.2, 0.6)))
+                price = round(10 * self.rng.uniform(0.96, 1.08), 2)  # around NAV, small premium on average
+                create_listing(s, user, token_id, shares, price)
+                return
+
+    @staticmethod
+    def _fund(user, amount: float) -> None:
+        c = chain()
+        have = from_usdc(c.c["usdc"].functions.balanceOf(user.wallet_address).call())
+        if have < amount:
+            c.send(c.platform, c.c["usdc"].functions.mint(user.wallet_address, to_usdc(amount - have + 50)))
+
+
+market_maker = MarketMaker()

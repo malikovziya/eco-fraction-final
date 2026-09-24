@@ -76,6 +76,7 @@ def score_asset(s: Session, asset: Asset, social: dict) -> dict:
                 "jobs_per_mw": round(jobs_per_mw, 2),
                 "local_hiring_pct": social["local_hiring_pct"],
                 "community_program": social["community"],
+                "community_program_tr": social.get("community_tr", social["community"]),
                 "source": "declared by producer",
             },
             "G": {

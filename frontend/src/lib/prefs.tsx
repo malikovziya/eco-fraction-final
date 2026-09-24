@@ -57,6 +57,8 @@ type Prefs = {
   currency: Currency;
   setCurrency: (c: Currency) => void;
   t: (key: DictKey, vars?: Record<string, string | number>) => string;
+  /** Inline bilingual text for page-specific copy: tx("Türkçe", "English") */
+  tx: (tr: string, en: string) => string;
   money: (usd: number | null | undefined, opts?: { decimals?: number; compact?: boolean }) => string;
   num: (n: number | null | undefined, decimals?: number) => string;
 };
@@ -82,6 +84,8 @@ export function PrefsProvider({ children }: { children: React.ReactNode }) {
     [lang],
   );
 
+  const tx = useCallback((tr: string, en: string) => (lang === "tr" ? tr : en), [lang]);
+
   const num = useCallback(
     (n: number | null | undefined, decimals = 0) =>
       n == null ? "–" : n.toLocaleString(locale, { minimumFractionDigits: decimals, maximumFractionDigits: decimals }),
@@ -101,7 +105,7 @@ export function PrefsProvider({ children }: { children: React.ReactNode }) {
     [currency, locale],
   );
 
-  return <Ctx.Provider value={{ lang, setLang, currency, setCurrency, t, money, num }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ lang, setLang, currency, setCurrency, t, tx, money, num }}>{children}</Ctx.Provider>;
 }
 
 export function usePrefs(): Prefs {

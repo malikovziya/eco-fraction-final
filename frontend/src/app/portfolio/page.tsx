@@ -2,9 +2,10 @@
 
 import clsx from "clsx";
 import { motion } from "motion/react";
-import { ArrowDownLeft, BadgeCheck, Coins, Leaf, ShoppingCart, Wallet } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, BadgeCheck, Coins, Landmark, Leaf, ShoppingCart, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { BankDialog } from "@/components/BankDialog";
 import { AnimatedNumber, Badge, Button, Card, EsgBadge, KindIcon, SectionTitle, Skeleton, TxLink } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { useData, useLiveEvent } from "@/lib/live";
@@ -13,11 +14,12 @@ import { usePrefs } from "@/lib/prefs";
 import type { ActivityT, Portfolio } from "@/lib/types";
 
 export default function PortfolioPage() {
-  const { t, money, num } = usePrefs();
+  const { t, tx, money, num } = usePrefs();
   const { user, ready } = useAuth();
-  const { data: pf } = useData<Portfolio>(user ? "/portfolio" : null, { refreshOn: ["payout", "investment"] });
-  const { data: activity } = useData<ActivityT[]>(user ? "/activity?limit=40" : null, { refreshOn: ["payout", "investment"] });
+  const { data: pf } = useData<Portfolio>(user ? "/portfolio" : null, { refreshOn: ["payout", "investment", "trade", "banking"] });
+  const { data: activity } = useData<ActivityT[]>(user ? "/activity?limit=40" : null, { refreshOn: ["payout", "investment", "trade", "banking"] });
   const [flash, setFlash] = useState(0);
+  const [bank, setBank] = useState<"deposit" | "withdraw" | null>(null);
 
   // Pulse the earnings figure whenever a payout lands in this wallet
   useLiveEvent(["payout"], (e) => {
@@ -49,7 +51,14 @@ export default function PortfolioPage() {
             {pf.user.kyc === "verified" && <Badge tone="wind" className="ml-2"><BadgeCheck className="size-3" />KYC</Badge>}
           </p>
         </div>
+        {pf.user.role === "investor" && (
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setBank("withdraw")}><ArrowUpRight className="size-4" />{tx("Bankaya çek", "Withdraw")}</Button>
+            <Button onClick={() => setBank("deposit")}><Landmark className="size-4" />{tx("Açık Bankacılık ile yatır", "Deposit via Open Banking")}</Button>
+          </div>
+        )}
       </div>
+      <BankDialog open={bank !== null} mode={bank ?? "deposit"} onClose={() => setBank(null)} />
 
       {/* Headline numbers */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -153,12 +162,12 @@ export default function PortfolioPage() {
   );
 }
 
-const ICONS = { deposit: ArrowDownLeft, buy: ShoppingCart, payout: Coins, kyc: BadgeCheck, sell: Coins, trade_buy: ShoppingCart };
+const ICONS = { deposit: ArrowDownLeft, buy: ShoppingCart, payout: Coins, kyc: BadgeCheck, sell: Coins, trade_buy: ShoppingCart, withdraw: ArrowUpRight };
 
 function ActivityRow({ a }: { a: ActivityT }) {
   const { t, money, num, lang } = usePrefs();
   const Icon = ICONS[a.kind] ?? Coins;
-  const positive = a.kind === "payout" || a.kind === "deposit" || a.kind === "sell";
+  const positive = a.kind === "payout" || a.kind === "deposit" || a.kind === "sell"; // withdraw/buy are outflows
   const time = new Date(a.created_at).toLocaleTimeString(lang === "tr" ? "tr-TR" : "en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
   return (
     <div className="flex items-center gap-3 rounded-lg px-2 py-2 text-sm hover:bg-surface-2">

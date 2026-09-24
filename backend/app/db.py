@@ -110,6 +110,8 @@ class Alert(Base):
     severity: Mapped[str] = mapped_column(String)  # high | medium | low
     title: Mapped[str] = mapped_column(String)
     detail: Mapped[str] = mapped_column(Text)
+    title_tr: Mapped[str | None] = mapped_column(String, nullable=True)
+    detail_tr: Mapped[str | None] = mapped_column(Text, nullable=True)
     batch_id: Mapped[int | None] = mapped_column(ForeignKey("batches.id"), nullable=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
@@ -127,6 +129,23 @@ class Activity(Base):
     amount_usdc: Mapped[float | None] = mapped_column(Float, nullable=True)
     tx_hash: Mapped[str | None] = mapped_column(String, nullable=True)
     detail: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class Trade(Base):
+    """Secondary-market fills, mirrored from the Marketplace contract's Traded events."""
+
+    __tablename__ = "trades"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    listing_id: Mapped[int] = mapped_column(Integer, index=True)
+    asset_id: Mapped[str] = mapped_column(String, index=True)
+    shares: Mapped[int] = mapped_column(Integer)
+    price_usdc: Mapped[float] = mapped_column(Float)
+    cost_usdc: Mapped[float] = mapped_column(Float)
+    fee_usdc: Mapped[float] = mapped_column(Float)
+    buyer_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    seller_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    tx_hash: Mapped[str] = mapped_column(String)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 

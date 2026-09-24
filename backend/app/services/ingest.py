@@ -177,10 +177,14 @@ class Ingest:
     def _alerts(self, s, asset, batch: Batch) -> None:
         if batch.flagged:
             what = "inflated meter readings" if batch.verdict == "inflate" else "a frozen meter signal"
+            what_tr = "şişirilmiş sayaç okuması" if batch.verdict == "inflate" else "donmuş sayaç sinyali"
+            window = f"{batch.period_start[11:16]}–{batch.period_end[11:16]}"
+            n = f"{batch.suspicious_readings}/{batch.readings_count}"
             s.add(Alert(asset_id=asset.id, kind="fraud", severity="high", batch_id=batch.id,
                         title=f"{asset.name}: revenue escrowed",
-                        detail=f"AI detected {what} in {batch.suspicious_readings}/{batch.readings_count} readings "
-                               f"({batch.period_start[11:16]}–{batch.period_end[11:16]}). Awaiting multisig review."))
+                        detail=f"AI detected {what} in {n} readings ({window}). Awaiting multisig review.",
+                        title_tr=f"{asset.name}: gelir emanete alındı",
+                        detail_tr=f"YZ, {n} okumada {what_tr} tespit etti ({window}). Çoklu imza incelemesi bekleniyor."))
             hub.publish("alert", {"asset_id": asset.id, "kind": "fraud", "batch_id": batch.id})
 
         active = s.scalar(select(Alert).where(Alert.asset_id == asset.id, Alert.kind == "maintenance", Alert.active))
@@ -188,10 +192,14 @@ class Ingest:
             self.maintenance_streak[asset.id] = 0
             if active is None:
                 part = "panel soiling or inverter wear" if asset.kind == "solar" else "gearbox or blade wear"
+                part_tr = "panel kirlenmesi veya inverter yıpranması" if asset.kind == "solar" else "dişli kutusu veya kanat yıpranması"
                 s.add(Alert(asset_id=asset.id, kind="maintenance", severity="medium", batch_id=batch.id,
                             title=f"{asset.name}: output degradation",
                             detail=f"Output is consistently below what conditions allow; likely {part}. "
-                                   f"Revenue is paid normally; maintenance recommended."))
+                                   f"Revenue is paid normally; maintenance recommended.",
+                            title_tr=f"{asset.name}: performans düşüşü",
+                            detail_tr=f"Üretim, koşulların izin verdiğinin sürekli altında; olası neden {part_tr}. "
+                                      f"Gelir normal ödeniyor; bakım önerilir."))
                 hub.publish("alert", {"asset_id": asset.id, "kind": "maintenance", "batch_id": batch.id})
         elif active is not None:
             self.maintenance_streak[asset.id] = self.maintenance_streak.get(asset.id, 0) + 1
@@ -211,10 +219,14 @@ class Ingest:
             if now - self.last_security_alert.get(asset_id, 0) > 30 and asset_id in p.assets:
                 self.last_security_alert[asset_id] = now
                 name = p.assets[asset_id].name
+                claimed = f"{float(m.get('power_kw') or 0):,.0f}"
                 s.add(Alert(asset_id=asset_id, kind="security", severity="high",
                             title=f"{name}: forged device blocked",
-                            detail=f"Messages claiming {m.get('power_kw')} kW were rejected ({event['reason']}). "
-                                   f"The signature does not match the registered device key."))
+                            detail=f"Messages claiming {claimed} kW were rejected ({event['reason']}). "
+                                   f"The signature does not match the registered device key.",
+                            title_tr=f"{name}: sahte cihaz engellendi",
+                            detail_tr=f"{claimed} kW iddia eden mesajlar reddedildi ({event['reason']}). "
+                                      f"İmza, kayıtlı cihaz anahtarıyla eşleşmiyor."))
                 hub.publish("alert", {"asset_id": asset_id, "kind": "security"})
             s.commit()
         p.stats["rejected"] += 1

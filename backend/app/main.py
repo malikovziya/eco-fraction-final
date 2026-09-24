@@ -6,12 +6,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
-from .api import multisig, public, users
+from .api import banking, market as market_api, multisig, producer, public, users
 from .db import SessionLocal, init_db
 from .hub import hub
 from .seed import seed_personas
 from .services.ingest import Ingest
-from .services.market import market
+from .services.market import market, market_maker
 from .services.settlement import settlement
 from .services.simctl import simctl
 from .state import platform
@@ -29,6 +29,7 @@ async def lifespan(app: FastAPI):
     settlement.start()
     Ingest(on_batch=settlement.submit).start()
     market.start()
+    market_maker.start()
     yield
 
 
@@ -42,6 +43,9 @@ app.add_middleware(
 app.include_router(public.router)
 app.include_router(users.router)
 app.include_router(multisig.router)
+app.include_router(market_api.router)
+app.include_router(banking.router)
+app.include_router(producer.router)
 
 
 @app.websocket("/ws")

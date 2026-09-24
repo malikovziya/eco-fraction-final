@@ -26,7 +26,7 @@ export type Asset = {
   lon: number;
   capacity_kw: number;
   turbines: number;
-  social: { jobs: number; local_hiring_pct: number; community: string };
+  social: { jobs: number; local_hiring_pct: number; community: string; community_tr?: string };
   valueUsd: number;
   totalShares: number;
   offeredShares: number;
@@ -102,7 +102,7 @@ export type Portfolio = {
 
 export type ActivityT = {
   id: number;
-  kind: "deposit" | "buy" | "payout" | "kyc" | "sell" | "trade_buy";
+  kind: "deposit" | "buy" | "payout" | "kyc" | "sell" | "trade_buy" | "withdraw";
   asset_id: string | null;
   shares: number | null;
   amount_usdc: number | null;

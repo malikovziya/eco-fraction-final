@@ -57,7 +57,7 @@ export function DemoPanel() {
     <AnimatePresence>
       {open && (
         <motion.aside initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-          className="card fixed bottom-4 right-4 z-50 w-80 p-4 shadow-2xl">
+          className="card fixed bottom-4 right-4 z-50 w-80 p-4 shadow-2xl print:hidden">
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2 font-semibold"><FlaskConical className="size-4 text-ai" />{t("demo.title")}</div>
             <button onClick={() => setOpen(false)} className="text-faint hover:text-text"><X className="size-4" /></button>

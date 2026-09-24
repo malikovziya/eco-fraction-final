@@ -13,7 +13,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <AuthProvider>
         <LiveProvider>
           <Nav />
-          <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6">{children}</main>
+          <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 print:max-w-none print:p-0">{children}</main>
           <Footer />
           <Toasts />
           <DemoPanel />
@@ -25,5 +25,5 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
 function Footer() {
   const { t } = usePrefs();
-  return <footer className="border-t border-line/60 py-6 text-center text-xs text-faint">{t("footer.note")}</footer>;
+  return <footer className="border-t border-line/60 py-6 print:hidden text-center text-xs text-faint">{t("footer.note")}</footer>;
 }

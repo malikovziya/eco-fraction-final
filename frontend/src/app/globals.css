@@ -59,6 +59,12 @@ body {
 }
 .live-dot { animation: pulse-dot 1.6s ease-in-out infinite; }
 
+@media print {
+  @page { size: A4; margin: 14mm; }
+  html { color-scheme: light; }
+  body { background: #fff !important; }
+}
+
 ::selection { background: rgb(16 185 129 / 0.35); }
 
 /* Thin scrollbars for feeds */

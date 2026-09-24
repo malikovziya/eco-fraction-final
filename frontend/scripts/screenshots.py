@@ -19,24 +19,31 @@ def main() -> None:
     out = Path(sys.argv[1] if len(sys.argv) > 1 else "screenshots")
     out.mkdir(parents=True, exist_ok=True)
     # Paths may be given without a leading slash ("assets", "home") to avoid shell path rewriting
-    pages = ["/" + ("" if a == "home" else a.lstrip("/")) for a in sys.argv[2:]] or PAGES
-    token = httpx.post(f"{API}/auth/persona", json={"persona": "aylin"}).json()["token"]
+    # "as:<persona>" switches the signed-in persona for the pages that follow
+    args = sys.argv[2:] or [p.lstrip("/") or "home" for p in PAGES]
+    errors: list[str] = []
 
     with sync_playwright() as p:
         browser = p.chromium.launch()
-        ctx = browser.new_context(viewport={"width": 1440, "height": 900}, device_scale_factor=1)
-        ctx.add_init_script(f"localStorage.setItem('eco.token', '{token}')")
-        page = ctx.new_page()
-        errors: list[str] = []
-        page.on("console", lambda m: m.type == "error" and errors.append(f"{page.url}: {m.text}"))
-        page.on("pageerror", lambda e: errors.append(f"{page.url}: {e}"))
-
-        for path in pages:
+        page = None
+        persona = "aylin"
+        for arg in args:
+            if arg.startswith("as:"):
+                persona, page = arg[3:], None
+                continue
+            if page is None:
+                token = httpx.post(f"{API}/auth/persona", json={"persona": persona}).json()["token"]
+                ctx = browser.new_context(viewport={"width": 1440, "height": 900}, device_scale_factor=1)
+                ctx.add_init_script(f"localStorage.setItem('eco.token', '{token}')")
+                page = ctx.new_page()
+                page.on("console", lambda m: m.type == "error" and errors.append(f"{m.text}"))
+                page.on("pageerror", lambda e: errors.append(f"{e}"))
+            path = "/" + ("" if arg == "home" else arg.lstrip("/"))
             page.goto(APP + path, wait_until="networkidle")
             time.sleep(6)  # let live data stream in
             name = path.strip("/").replace("/", "_") or "home"
             page.screenshot(path=out / f"{name}.png", full_page=True)
-            print(f"captured {path}")
+            print(f"captured {path} as {persona}")
         browser.close()
 
     print(f"\n{len(errors)} console errors")

@@ -20,7 +20,7 @@ type Forecast = React.ComponentProps<typeof ForecastChart>["data"] & {
 
 export default function AssetPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { t, money, num } = usePrefs();
+  const { t, tx, money, num } = usePrefs();
   const { latest } = useLive();
   const [verifyId, setVerifyId] = useState<number | null>(null);
   const { data: asset, reload } = useData<Asset>(`/assets/${id}`, { refreshOn: ["batch_settled", "alert", "investment"] });
@@ -121,7 +121,7 @@ export default function AssetPage({ params }: { params: Promise<{ id: string }> 
             </div>
             <div className="mt-5 rounded-xl bg-surface-2 p-3 text-sm">
               <div className="mb-1 flex items-center gap-1.5 text-xs text-faint"><HeartHandshake className="size-3.5" />{t("asset.community")}</div>
-              {asset.social.community}
+              {tx(asset.social.community_tr ?? asset.social.community, asset.social.community)}
             </div>
           </Card>
           <AiFeed assetId={id} />

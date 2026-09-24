@@ -149,14 +149,29 @@ def batch_dict(b: Batch) -> dict:
 
 
 @router.get("/batches")
-def batches(asset_id: str | None = None, flagged: bool | None = None, limit: int = 50,
+def batches(asset_id: str | None = None, flagged: bool | None = None, status: str | None = None, limit: int = 50,
             s: Session = Depends(get_db)) -> list[dict]:
     q = select(Batch).order_by(desc(Batch.id)).limit(limit)
     if asset_id:
         q = q.where(Batch.asset_id == asset_id)
     if flagged is not None:
         q = q.where(Batch.flagged == flagged)
+    if status:
+        q = q.where(Batch.status == status)
     return [batch_dict(b) for b in s.scalars(q)]
+
+
+@router.get("/batches/{batch_id}/readings")
+def batch_readings(batch_id: int, s: Session = Depends(get_db)) -> list[dict]:
+    """The signed readings inside one batch, with the AI score of each (evidence for reviewers)."""
+    out = []
+    for r in s.scalars(select(Reading).where(Reading.batch_id == batch_id).order_by(Reading.id)):
+        raw = json.loads(r.raw)
+        out.append({"ts": r.ts, "power_kw": r.power_kw, "fraud_prob": round(r.fraud_prob, 4),
+                    "degrade_prob": round(r.degrade_prob, 4), "predicted": r.predicted_class,
+                    "irradiance_wm2": raw.get("irradiance_wm2"), "wind_speed_ms": raw.get("wind_speed_ms"),
+                    "capacity_kw": raw.get("capacity_kw")})
+    return out
 
 
 @router.get("/batches/{batch_id}")
@@ -193,7 +208,8 @@ def alerts(active: bool | None = None, limit: int = 30, s: Session = Depends(get
     if active is not None:
         q = q.where(Alert.active == active)
     return [{"id": a.id, "asset_id": a.asset_id, "kind": a.kind, "severity": a.severity, "title": a.title,
-             "detail": a.detail, "batch_id": a.batch_id, "active": a.active, "created_at": a.created_at}
+             "detail": a.detail, "title_tr": a.title_tr, "detail_tr": a.detail_tr, "batch_id": a.batch_id,
+             "active": a.active, "created_at": a.created_at}
             for a in s.scalars(q)]
 
 

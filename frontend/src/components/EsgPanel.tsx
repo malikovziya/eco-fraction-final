@@ -11,7 +11,7 @@ export type Esg = {
   pillars: {
     E: { score: number; capacity_factor_24h: number; benchmark_capacity_factor: number; performance_vs_benchmark: number;
          co2_avoided_t: number; co2_avoided_annual_t: number; households_powered: number; grid_emission_factor_kg_kwh: number };
-    S: { score: number; jobs: number; jobs_per_mw: number; local_hiring_pct: number; community_program: string; source: string };
+    S: { score: number; jobs: number; jobs_per_mw: number; local_hiring_pct: number; community_program: string; community_program_tr?: string; source: string };
     G: { score: number; data_integrity: number; verified_readings: number; rejected_messages: number; batches: number;
          flagged_batches: number; anomaly_rate: number; controls: Record<string, boolean> };
   };
