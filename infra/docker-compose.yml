@@ -38,10 +38,11 @@ services:
       - redpanda
     restart: unless-stopped
 
-  # Blockchain layer: local EVM chain (Polygon-compatible), deterministic accounts
+  # Blockchain layer: local EVM chain (Polygon-compatible), deterministic accounts.
+  # Instant mining: every transaction is confirmed as soon as it is sent.
   chain:
     image: ghcr.io/foundry-rs/foundry:stable
-    entrypoint: ["anvil", "--host", "0.0.0.0", "--chain-id", "31337", "--block-time", "2"]
+    entrypoint: ["anvil", "--host", "0.0.0.0", "--chain-id", "31337"]
     ports:
       - "8545:8545"
     restart: unless-stopped

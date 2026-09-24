@@ -1,11 +1,19 @@
-"""Renewable assets listed on the platform. Names are fictional; locations and sizes are realistic."""
+"""Renewable assets listed on the platform, loaded from shared/assets.json (single source of truth).
 
+Names are fictional; locations and sizes are realistic.
+"""
+
+import json
 from dataclasses import dataclass
+from pathlib import Path
+
+ASSETS_JSON = Path(__file__).resolve().parent.parent / "shared" / "assets.json"
 
 
 @dataclass(frozen=True)
 class Asset:
     id: str
+    token_id: int
     name: str
     kind: str  # "solar" | "wind"
     region: str
@@ -18,12 +26,19 @@ class Asset:
 
 
 ASSETS: list[Asset] = [
-    Asset("gobustan-solar", "Gobustan Solar Park", "solar", "Gobustan", 40.53, 48.93, 60_000),
-    Asset("bilasuvar-solar", "Bilasuvar Sun Fields", "solar", "Bilasuvar", 39.46, 48.55, 120_000),
-    Asset("nakhchivan-solar", "Sharur Highland Solar", "solar", "Nakhchivan", 39.55, 44.98, 30_000),
-    Asset("sumgait-rooftop", "Sumgait Rooftop Cluster", "solar", "Sumgait", 40.59, 49.67, 5_000),
-    Asset("khizi-wind", "Khizi Ridge Wind Farm", "wind", "Khizi", 40.91, 49.07, 240_000, turbines=40, mean_wind_ms=9.2),
-    Asset("absheron-wind", "Absheron Coastal Wind", "wind", "Absheron", 40.46, 50.05, 80_000, turbines=16, mean_wind_ms=9.6),
+    Asset(
+        id=a["id"],
+        token_id=a["tokenId"],
+        name=a["name"],
+        kind=a["kind"],
+        region=a["region"],
+        lat=a["lat"],
+        lon=a["lon"],
+        capacity_kw=a["capacity_kw"],
+        turbines=a.get("turbines", 0),
+        mean_wind_ms=a.get("mean_wind_ms", 0.0),
+    )
+    for a in json.loads(ASSETS_JSON.read_text(encoding="utf-8"))
 ]
 
 ASSETS_BY_ID = {a.id: a for a in ASSETS}
