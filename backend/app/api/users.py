@@ -1,13 +1,16 @@
 """Accounts, KYC, wallet, investing and portfolio."""
 
+from datetime import timedelta
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session
 
 from ..chain import TxFailed, chain, from_usdc, tx_hex
-from ..db import Activity, SessionToken, User
+from ..db import Activity, SessionToken, User, utcnow
 from ..esg import BENCHMARK_CF, score_asset
+from ..hub import hub
 from ..security import check_password, hash_password, new_session_token
 from ..state import platform
 from ..wallets import approve_platform_contracts, deposit, new_wallet, signer_for, verify_kyc
@@ -147,6 +150,8 @@ def invest(body: InvestIn, user: User = Depends(require_role("investor")), s: Se
     s.add(Activity(user_id=user.id, kind="buy", asset_id=asset.id, shares=body.shares,
                    amount_usdc=from_usdc(cost), tx_hash=tx_hex(receipt), detail={"fee_usdc": from_usdc(fee)}))
     s.commit()
+    hub.publish("investment", {"name": user.name, "asset_id": asset.id, "asset_name": asset.name,
+                               "shares": body.shares, "amount_usdc": from_usdc(cost), "tx_hash": tx_hex(receipt)})
     return {"tx_hash": tx_hex(receipt), "shares": body.shares, "cost_usdc": from_usdc(cost), "fee_usdc": from_usdc(fee)}
 
 
@@ -182,6 +187,13 @@ def portfolio(user: User = Depends(current_user), s: Session = Depends(get_db)) 
         esg_weighted += esg["score"] * value
     total_earned = s.scalar(select(func.sum(Activity.amount_usdc)).where(
         Activity.user_id == user.id, Activity.kind == "payout")) or 0.0
+    # Actual earning pace: payouts in the last real minute, per simulated hour
+    window_s = 60
+    recent = s.scalar(select(func.sum(Activity.amount_usdc)).where(
+        Activity.user_id == user.id, Activity.kind == "payout",
+        Activity.created_at >= utcnow() - timedelta(seconds=window_s))) or 0.0
+    speed = p.sim_status.get("speed", 300)
+    sim_hours = max(1 / 12, window_s * speed / 3600)
     return {
         "user": user_dict(user),
         "usdc_balance": from_usdc(c.c["usdc"].functions.balanceOf(user.wallet_address).call()),
@@ -190,6 +202,7 @@ def portfolio(user: User = Depends(current_user), s: Session = Depends(get_db)) 
         "total_earned_usdc": round(total_earned, 6),
         "projected_annual_income_usdc": round(annual_income, 2),
         "portfolio_esg": round(esg_weighted / invested_value, 1) if invested_value else None,
+        "earning_rate_per_sim_hour": round(recent / sim_hours, 6),
     }
 
 

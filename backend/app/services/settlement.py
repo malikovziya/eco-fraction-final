@@ -66,7 +66,8 @@ class Settlement:
     def pay_holders(s, token_id: int, asset_id: str) -> str | None:
         """Push all claimable revenue for an asset to every platform wallet holding it."""
         c = chain()
-        users = s.scalars(select(User)).all()
+        # Background investors' revenue accrues on-chain (claimable); push only to interactive users
+        users = s.scalars(select(User).where(User.synthetic.is_(False))).all()
         addresses = [u.wallet_address for u in users]
         balances = c.c["token"].functions.balanceOfBatch(addresses, [token_id] * len(addresses)).call()
         holders = [u for u, bal in zip(users, balances) if bal > 0]

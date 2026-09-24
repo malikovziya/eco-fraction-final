@@ -43,6 +43,7 @@ class User(Base):
     wallet_key_enc: Mapped[str | None] = mapped_column(Text, nullable=True)  # None = derived from dev mnemonic
     wallet_index: Mapped[int | None] = mapped_column(Integer, nullable=True)
     kyc_status: Mapped[str] = mapped_column(String, default="none")  # none | pending | verified
+    synthetic: Mapped[bool] = mapped_column(Boolean, default=False)  # background market participant
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 

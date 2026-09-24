@@ -26,3 +26,8 @@ HOUSEHOLD_KWH_PER_YEAR = 2_200  # average Azerbaijani household consumption
 FRAUD_THRESHOLD = 0.5  # per-reading fraud probability counted as suspicious
 FLAG_MIN_SUSPICIOUS = 3  # suspicious readings in a batch (of 12) that trigger escrow
 GAS_FUNDING_ETH = 1  # gas money for each new custodial wallet
+
+# Display-only exchange rates for the currency toggle (settlement is always USDC)
+FX_RATES = {"USD": 1.0, "AZN": 1.70, "TRY": 41.0}
+BACKGROUND_INVESTORS = 200  # synthetic market participants seeded after start-up
+TRICKLE_INVEST_SECONDS = 25  # a new background investment roughly this often

@@ -11,6 +11,7 @@ from .db import SessionLocal, init_db
 from .hub import hub
 from .seed import seed_personas
 from .services.ingest import Ingest
+from .services.market import market
 from .services.settlement import settlement
 from .services.simctl import simctl
 from .state import platform
@@ -27,6 +28,7 @@ async def lifespan(app: FastAPI):
     simctl.start()
     settlement.start()
     Ingest(on_batch=settlement.submit).start()
+    market.start()
     yield
 
 

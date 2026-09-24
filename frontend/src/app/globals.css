@@ -1,26 +1,65 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Eco-Fraction dark energy-tech theme. Layer colours match the architecture diagram:
+   solar = amber, wind/green = emerald, AI = violet, blockchain = sky, alerts = rose. */
+@theme {
+  --color-bg: #070b14;
+  --color-surface: #0d1424;
+  --color-surface-2: #131c31;
+  --color-line: #1f2a44;
+  --color-text: #e6edf7;
+  --color-muted: #8b98b2;
+  --color-faint: #5b6782;
+  --color-solar: #f5a524;
+  --color-wind: #10b981;
+  --color-ai: #a78bfa;
+  --color-chain: #38bdf8;
+  --color-money: #34d399;
+  --color-alert: #f43f5e;
+  --color-warn: #fbbf24;
+
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgb(16 185 129 / 0.08), transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, rgb(56 189 248 / 0.07), transparent 60%),
+    var(--color-bg);
+  background-attachment: fixed;
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-feature-settings: "cv11", "ss01";
 }
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Subtle glass card */
+.card {
+  background: linear-gradient(180deg, rgb(19 28 49 / 0.85), rgb(13 20 36 / 0.85));
+  border: 1px solid var(--color-line);
+  border-radius: 1rem;
+  backdrop-filter: blur(8px);
+}
+
+.glow-wind { box-shadow: 0 0 0 1px rgb(16 185 129 / 0.35), 0 0 24px rgb(16 185 129 / 0.18); }
+.glow-solar { box-shadow: 0 0 0 1px rgb(245 165 36 / 0.35), 0 0 24px rgb(245 165 36 / 0.18); }
+.glow-alert { box-shadow: 0 0 0 1px rgb(244 63 94 / 0.45), 0 0 28px rgb(244 63 94 / 0.25); }
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.8); }
+}
+.live-dot { animation: pulse-dot 1.6s ease-in-out infinite; }
+
+::selection { background: rgb(16 185 129 / 0.35); }
+
+/* Thin scrollbars for feeds */
+.scroll-thin { scrollbar-width: thin; scrollbar-color: var(--color-line) transparent; }

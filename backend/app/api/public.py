@@ -305,3 +305,32 @@ def contracts() -> dict:
     return {"chainId": c.deployment["chainId"], "network": "Local EVM (Polygon-compatible)",
             "contracts": {k: v["address"] for k, v in c.deployment["contracts"].items()},
             "accounts": c.deployment["accounts"], "params": c.deployment["params"]}
+
+
+@router.get("/chain/recent")
+def recent_transactions(limit: int = 25) -> list[dict]:
+    """Latest platform transactions, newest first, with the contract function each one called."""
+    c = chain()
+    out, number = [], c.w3.eth.block_number
+    while number >= 0 and len(out) < limit:
+        block = c.w3.eth.get_block(number, full_transactions=True)
+        for tx in reversed(block.transactions):
+            to_name = c.names.get((tx["to"] or "").lower())
+            fn = None
+            if to_name:
+                try:
+                    fn = c.c[to_name].decode_function_input(tx["input"])[0].fn_name
+                except Exception:
+                    pass
+            out.append({"hash": "0x" + tx["hash"].hex().removeprefix("0x"), "block": number,
+                        "timestamp": block.timestamp, "from": tx["from"], "to_contract": to_name, "function": fn})
+        number -= 1
+    return out[:limit]
+
+
+@router.get("/config")
+def app_config() -> dict:
+    from ..config import FX_RATES
+
+    c = chain()
+    return {"fx": FX_RATES, "params": c.deployment["params"], "chainId": c.deployment["chainId"]}

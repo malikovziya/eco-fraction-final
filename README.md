@@ -63,3 +63,25 @@ Model cards: `GET /api/ai/models`.
 cd contracts; npx hardhat test                    # 22 unit tests
 .venv\Scripts\python backend\scripts\e2e.py        # full platform flow against the running stack
 ```
+
+## Frontend (http://localhost:3000)
+
+Turkish by default with an EN toggle; USD / AZN / TRY display toggle (fixed demo rates).
+
+| Page | What it shows |
+|---|---|
+| `/` | Live platform stats, Azerbaijan asset map, live event feed, problem → solution |
+| `/assets`, `/assets/[id]` | Offerings; live signed readings, LSTM forecast, on-chain batches with hash verification, ESG breakdown, invest |
+| `/portfolio` | Holdings, auto-payout earnings, projected income, activity with tx links |
+| `/architecture` | Report Figure 1, animated by real platform events |
+| `/ai` | Model cards: accuracy, confusion matrix, feature importance, forecast vs. baseline |
+| `/explorer`, `/tx/[hash]` | Recent transactions and decoded transaction details |
+| `/login` | One-click personas, signup, sandbox KYC |
+
+**Presenter scenario panel:** press `Ctrl+Shift+D` on any page to inject faults, change simulation speed or switch persona.
+
+Screenshots of every page (needs `pip install playwright` + `playwright install chromium`):
+
+```powershell
+.venv\Scripts\python frontend\scripts\screenshots.py <out_dir>
+```

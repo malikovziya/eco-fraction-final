@@ -11,6 +11,7 @@ from iot.physics import SolarModel, WindModel
 
 from .chain import chain
 from .db import HourlyEnergy, User
+from .services.market import seed_portfolio
 from .wallets import approve_platform_contracts, deposit, new_wallet, verify_kyc
 
 PERSONAS = [
@@ -23,6 +24,8 @@ PERSONAS = [
     ("signer-cto", "Elvin Aliyev", "signer", "Chief Technology Officer", 2),
 ]
 AYLIN_STARTING_USDC = 10_000
+# Aylin already holds ~$8,000 across four assets (token id -> shares), so payouts are visible
+AYLIN_PORTFOLIO = {1: 300, 5: 250, 6: 150, 4: 100}
 
 
 def seed_personas(s: Session) -> None:
@@ -43,6 +46,7 @@ def seed_personas(s: Session) -> None:
             verify_kyc(s, user)
             approve_platform_contracts(user)
             deposit(s, user, AYLIN_STARTING_USDC, method="seed")
+            seed_portfolio(s, user, AYLIN_PORTFOLIO)
     s.commit()
 
 
