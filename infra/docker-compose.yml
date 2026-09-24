@@ -1,0 +1,47 @@
+# Eco-Fraction infrastructure: IoT broker, stream platform, local blockchain.
+# Frontend and backend run natively (see start.ps1).
+name: eco-fraction
+
+services:
+  # Physical/Data layer: MQTT broker the sensor simulator publishes to
+  mosquitto:
+    image: eclipse-mosquitto:2
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    restart: unless-stopped
+
+  # Data layer: Kafka-compatible stream platform
+  redpanda:
+    image: redpandadata/redpanda:v24.2.7
+    command:
+      - redpanda
+      - start
+      - --mode=dev-container
+      - --smp=1
+      - --memory=512M
+      - --kafka-addr=internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr=internal://redpanda:9092,external://localhost:19092
+    ports:
+      - "19092:19092"
+    restart: unless-stopped
+
+  # Web UI to show Kafka topics and live messages to judges
+  redpanda-console:
+    image: redpandadata/console:v2.7.2
+    environment:
+      KAFKA_BROKERS: redpanda:9092
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redpanda
+    restart: unless-stopped
+
+  # Blockchain layer: local EVM chain (Polygon-compatible), deterministic accounts
+  chain:
+    image: ghcr.io/foundry-rs/foundry:stable
+    entrypoint: ["anvil", "--host", "0.0.0.0", "--chain-id", "31337", "--block-time", "2"]
+    ports:
+      - "8545:8545"
+    restart: unless-stopped
