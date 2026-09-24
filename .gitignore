@@ -21,3 +21,6 @@ logs/
 
 # Device private keys (generated on first run)
 iot/.keys/
+
+# Backend runtime data (SQLite db, wallet encryption key)
+backend/data/

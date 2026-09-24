@@ -51,7 +51,11 @@ class Device:
                 self.frozen = None
 
     def reading(self, sim_time: datetime, dt_s: float) -> dict:
-        r = self.model.step(sim_time, dt_s)
+        return self.apply_faults(self.model.step(sim_time, dt_s), dt_s)
+
+    def apply_faults(self, r: dict, dt_s: float) -> dict:
+        """Turn the true physical reading into what the (possibly faulty) meter reports."""
+        r = dict(r)
         cap = self.asset.capacity_kw
 
         if "degrade" in self.faults:

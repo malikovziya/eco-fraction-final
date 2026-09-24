@@ -71,12 +71,13 @@ class WindModel:
         self.mean = asset.mean_wind_ms
         self.speed = asset.mean_wind_ms
 
-    def power_fraction(self, v: float) -> float:
-        if v < self.CUT_IN or v >= self.CUT_OUT:
+    @classmethod
+    def power_fraction(cls, v: float) -> float:
+        if v < cls.CUT_IN or v >= cls.CUT_OUT:
             return 0.0
-        if v >= self.RATED:
+        if v >= cls.RATED:
             return 1.0
-        return ((v - self.CUT_IN) / (self.RATED - self.CUT_IN)) ** 3
+        return ((v - cls.CUT_IN) / (cls.RATED - cls.CUT_IN)) ** 3
 
     def step(self, local_time: datetime, dt_s: float) -> dict:
         # Absheron winds are stronger in the afternoon (sea breeze); rates tuned per 5 min

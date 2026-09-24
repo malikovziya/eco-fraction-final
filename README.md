@@ -41,3 +41,25 @@ Verified readings land in `telemetry.verified`, attacks in `telemetry.rejected`.
 .venv\Scripts\python -m iot.control speed 1                           # live time (default 300 = 5 min/s)
 .venv\Scripts\python -m iot.watch                                     # print the Kafka stream
 ```
+
+## AI models
+
+Trained on 90 simulated days per asset with labeled fault episodes (time-based 80/20 split).
+
+```powershell
+cd backend; ..\.venv\Scripts\python -m app.ai.train   # retrain both models (~2 min)
+```
+
+| Model | Task | Held-out result |
+|---|---|---|
+| XGBoost (4 classes) | normal / inflate / flatline / degrade per reading | 99.6% accuracy, SHAP explanations |
+| LSTM + physics prior | next-24h production forecast | solar 26%, wind 28% better than persistence |
+
+Model cards: `GET /api/ai/models`.
+
+## Contracts & end-to-end checks
+
+```powershell
+cd contracts; npx hardhat test                    # 22 unit tests
+.venv\Scripts\python backend\scripts\e2e.py        # full platform flow against the running stack
+```

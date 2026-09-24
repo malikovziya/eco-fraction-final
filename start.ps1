@@ -33,6 +33,12 @@ if (-not (Test-Path "$venv\Scripts\python.exe")) { python -m venv $venv }
 & "$venv\Scripts\python.exe" -m pip install -q --disable-pip-version-check `
     -r "$root\backend\requirements.txt" -r "$root\iot\requirements.txt"
 if ($LASTEXITCODE -ne 0) { throw 'Python dependency install failed.' }
+if (-not (Test-Path "$root\backend\models\anomaly_xgb.json")) {
+    Write-Host '   Training AI models (first run, ~2 minutes)...'
+    Push-Location "$root\backend"
+    & "$venv\Scripts\python.exe" -m app.ai.train | Out-Host
+    Pop-Location
+}
 # Services run hidden and log to files; a console window can stall request handling.
 Start-Process -FilePath "$venv\Scripts\python.exe" `
     -ArgumentList '-m', 'uvicorn', 'app.main:app', '--reload', '--port', '8100' `

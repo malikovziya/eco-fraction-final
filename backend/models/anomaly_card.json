@@ -1,0 +1,91 @@
+{
+  "model": "XGBoost multi-class classifier (300 trees, depth 6)",
+  "classes": [
+    "normal",
+    "inflate",
+    "flatline",
+    "degrade"
+  ],
+  "features": [
+    "power_ratio",
+    "implied_ratio",
+    "residual",
+    "consistency",
+    "sun_elevation",
+    "night_output",
+    "is_solar",
+    "env_level",
+    "rolling_std",
+    "unchanged_count",
+    "delta_prev"
+  ],
+  "train_rows": 124416,
+  "test_rows": 31104,
+  "split": "time-based: first 80% of simulated days for training, last 20% held out",
+  "metrics": {
+    "normal": {
+      "precision": 0.9978,
+      "recall": 0.9965,
+      "f1-score": 0.9971,
+      "support": 23406.0
+    },
+    "inflate": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 2507.0
+    },
+    "flatline": {
+      "precision": 0.9524,
+      "recall": 0.9867,
+      "f1-score": 0.9692,
+      "support": 1277.0
+    },
+    "degrade": {
+      "precision": 0.9951,
+      "recall": 0.9911,
+      "f1-score": 0.9931,
+      "support": 3914.0
+    }
+  },
+  "accuracy": 0.9957,
+  "confusion_matrix": [
+    [
+      23324,
+      0,
+      63,
+      19
+    ],
+    [
+      0,
+      2507,
+      0,
+      0
+    ],
+    [
+      17,
+      0,
+      1260,
+      0
+    ],
+    [
+      35,
+      0,
+      0,
+      3879
+    ]
+  ],
+  "feature_importance": {
+    "night_output": 201.71,
+    "residual": 122.32,
+    "consistency": 97.32,
+    "sun_elevation": 37.89,
+    "implied_ratio": 16.43,
+    "power_ratio": 15.9,
+    "unchanged_count": 8.43,
+    "rolling_std": 1.54,
+    "env_level": 1.05,
+    "delta_prev": 0.9,
+    "is_solar": 0.61
+  }
+}

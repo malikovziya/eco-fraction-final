@@ -1,0 +1,21 @@
+{
+  "model": "2-layer LSTM (64 units) + future-context head (solar: physics-informed clear-sky prior)",
+  "history_h": 48,
+  "horizon_h": 24,
+  "kinds": {
+    "solar": {
+      "train_windows": 6680,
+      "test_windows": 1672,
+      "mae_capacity_ratio": 0.0278,
+      "persistence_mae": 0.0376,
+      "improvement_vs_persistence": 0.261
+    },
+    "wind": {
+      "train_windows": 3340,
+      "test_windows": 836,
+      "mae_capacity_ratio": 0.1338,
+      "persistence_mae": 0.1865,
+      "improvement_vs_persistence": 0.282
+    }
+  }
+}

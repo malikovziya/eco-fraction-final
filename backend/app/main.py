@@ -1,48 +1,53 @@
-"""Eco-Fraction API: entry point for the Intelligence, Blockchain and Financial layers."""
+"""Eco-Fraction API: Intelligence, Blockchain-integration and Financial layers."""
 
-import socket
+import asyncio
+from contextlib import asynccontextmanager
 
-import httpx
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="Eco-Fraction API", version="0.1.0")
+from .api import multisig, public, users
+from .db import SessionLocal, init_db
+from .hub import hub
+from .seed import seed_personas
+from .services.ingest import Ingest
+from .services.settlement import settlement
+from .services.simctl import simctl
+from .state import platform
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    fresh = init_db()
+    platform()  # load AI models before traffic arrives
+    with SessionLocal() as s:
+        seed_personas(s)
+    print(f"[backend] database {'reset for new deployment' if fresh else 'reused'}; personas ready", flush=True)
+    hub.bind(asyncio.get_running_loop())
+    simctl.start()
+    settlement.start()
+    Ingest(on_batch=settlement.submit).start()
+    yield
+
+
+app = FastAPI(title="Eco-Fraction API", version="1.0.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(public.router)
+app.include_router(users.router)
+app.include_router(multisig.router)
 
 
-def _tcp_up(host: str, port: int) -> bool:
+@app.websocket("/ws")
+async def websocket(ws: WebSocket):
+    await ws.accept()
+    hub.clients.add(ws)
     try:
-        with socket.create_connection((host, port), timeout=1):
-            return True
-    except OSError:
-        return False
-
-
-def _chain_block() -> int | None:
-    try:
-        r = httpx.post(
-            "http://localhost:8545",
-            json={"jsonrpc": "2.0", "method": "eth_blockNumber", "params": [], "id": 1},
-            timeout=1,
-        )
-        return int(r.json()["result"], 16)
-    except Exception:
-        return None
-
-
-@app.get("/api/health")
-def health() -> dict:
-    block = _chain_block()
-    return {
-        "api": True,
-        "mqtt": _tcp_up("localhost", 1883),
-        "kafka": _tcp_up("localhost", 19092),
-        "chain": block is not None,
-        "chainBlock": block,
-    }
+        while True:
+            await ws.receive_text()  # keep-alive; clients don't send commands over the socket
+    except WebSocketDisconnect:
+        hub.clients.discard(ws)
