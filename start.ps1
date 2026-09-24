@@ -9,6 +9,25 @@ $root = $PSScriptRoot
 $nodeDir = "$env:LOCALAPPDATA\Programs\node-v24.19.0-win-x64"
 if (Test-Path $nodeDir) { $env:Path = "$nodeDir;$env:Path" }
 
+# Prerequisites: fail early with a clear message instead of a cryptic error later
+$missing = @()
+if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { $missing += 'Docker Desktop  https://www.docker.com/products/docker-desktop' }
+elseif (-not (cmd /c "docker info >nul 2>&1 && echo ok")) { $missing += 'Docker Desktop is installed but not running: start it and wait until it is ready' }
+if (-not (Get-Command node -ErrorAction SilentlyContinue)) { $missing += 'Node.js 20 or newer  https://nodejs.org' }
+$python = $null
+foreach ($candidate in @('python', 'py')) {
+    if (Get-Command $candidate -ErrorAction SilentlyContinue) {
+        $version = & $candidate -c "import sys; print('%d.%d' % sys.version_info[:2])" 2>$null
+        if ($version -and [version]$version -ge [version]'3.10') { $python = $candidate; break }
+    }
+}
+if (-not $python -and -not (Test-Path "$root\.venv\Scripts\python.exe")) { $missing += 'Python 3.10+ (3.12 recommended)  https://www.python.org/downloads/  (tick "Add to PATH")' }
+if ($missing) {
+    Write-Host 'Cannot start, missing prerequisites:' -ForegroundColor Red
+    $missing | ForEach-Object { Write-Host "  - $_" }
+    exit 1
+}
+
 Write-Host '[1/4] Starting infrastructure (MQTT, Kafka, chain)...' -ForegroundColor Cyan
 if (Get-NetTCPConnection -LocalPort 8100 -State Listen -ErrorAction SilentlyContinue) {
     Write-Host 'Eco-Fraction already appears to be running. Run .\stop.ps1 first.' -ForegroundColor Yellow
@@ -31,7 +50,7 @@ Get-Content "$logs\deploy.log" | Select-Object -Skip 1 -First 8 | ForEach-Object
 
 Write-Host '[3/4] Starting backend and IoT layer...' -ForegroundColor Cyan
 $venv = "$root\.venv"
-if (-not (Test-Path "$venv\Scripts\python.exe")) { python -m venv $venv }
+if (-not (Test-Path "$venv\Scripts\python.exe")) { & $python -m venv $venv }
 & "$venv\Scripts\python.exe" -m pip install -q --disable-pip-version-check `
     -r "$root\backend\requirements.txt" -r "$root\iot\requirements.txt"
 if ($LASTEXITCODE -ne 0) { throw 'Python dependency install failed.' }

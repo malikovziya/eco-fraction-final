@@ -65,16 +65,57 @@ Karar politikası: şişirme ve donmuş sinyal geliri emanete alır; performans 
 
 ---
 
-## Çalıştırma
+## Kendi bilgisayarınızda çalıştırma
 
-Gereksinimler: Windows, Docker Desktop, Python 3.12, Node.js 20+.
+### 1. Gereksinimler (bir kez)
 
+| Araç | Sürüm | İndirme |
+|---|---|---|
+| Docker Desktop | güncel | https://www.docker.com/products/docker-desktop (kurduktan sonra açın) |
+| Python | 3.10+ (3.12 önerilir) | https://www.python.org/downloads/ (Windows'ta "Add python.exe to PATH" kutusunu işaretleyin) |
+| Node.js | 20+ (LTS) | https://nodejs.org |
+| Git | güncel | https://git-scm.com |
+
+Donanım: en az 8 GB RAM (16 GB önerilir), ~5 GB boş disk. İlk kurulum internet ister (Docker imajları, Python ve npm paketleri; ~10–15 dakika); sonrasında tamamen çevrimdışı çalışır.
+
+### 2. İndirme ve başlatma
+
+**Windows (PowerShell):**
 ```powershell
-.\start.ps1         # her şeyi başlatır (ilk çalıştırmada bağımlılıkları kurar)
-.\reset.ps1         # temiz ve aynı başlangıç durumu: sunum ve provalardan önce
-.\stop.ps1          # her şeyi durdurur
-.\start.ps1 -Dev    # geliştirme: anlık yeniden yükleme
+git clone https://github.com/malikovziya/eco-fraction-final.git
+cd eco-fraction-final
+powershell -ExecutionPolicy Bypass -File .\start.ps1
 ```
+
+**macOS / Linux (Terminal):**
+```bash
+git clone https://github.com/malikovziya/eco-fraction-final.git
+cd eco-fraction-final
+chmod +x start.sh stop.sh
+./start.sh
+```
+
+İlk çalıştırma tüm bağımlılıkları kurar, sözleşmeleri dağıtır ve arayüzü derler. Bittiğinde **http://localhost:3000** adresini açın. Yaklaşık 1 dakika içinde 200 yatırımcı ve kurumsal fonlar arka planda yüklenir.
+
+### 3. Günlük kullanım
+
+| İşlem | Windows | macOS / Linux |
+|---|---|---|
+| Başlat | `.\start.ps1` | `./start.sh` |
+| Durdur | `.\stop.ps1` | `./stop.sh` |
+| Temiz başlangıç (sunum öncesi) | `.\reset.ps1` | `./stop.sh && ./start.sh` |
+| Geliştirme modu (anlık yeniden yükleme) | `.\start.ps1 -Dev` | `./start.sh --dev` |
+
+> Windows "komut dosyası çalıştırma devre dışı" hatası verirse bir kez şunu çalıştırın: `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`
+
+### Sorun giderme
+
+| Belirti | Çözüm |
+|---|---|
+| "missing prerequisites" | Listelenen aracı kurun, terminali kapatıp yeniden açın |
+| "Docker is installed but not running" | Docker Desktop'ı açın, simge yeşil olana kadar bekleyin |
+| Port 3000 / 8100 / 8545 / 1883 kullanımda | O portu kullanan diğer uygulamayı kapatın |
+| Bir şey takıldı | Durdurup yeniden başlatın; ayrıntılar `logs/` klasöründe |
 
 | Servis | Adres |
 |---|---|
