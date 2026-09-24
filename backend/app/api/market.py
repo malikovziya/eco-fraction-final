@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from ..chain import TxFailed, chain, tx_hex
 from ..db import Trade, User
 from ..state import platform
-from ..trading import create_listing, fill_listing, listings
+from ..trading import create_listing, fill_listing, invalidate_listings, listings
 from ..wallets import signer_for
 from .deps import get_db, require_role
 
@@ -101,4 +101,5 @@ def cancel(body: CancelIn, user: User = Depends(require_role("investor")), s: Se
         receipt = c.send(signer_for(s.merge(user)), c.c["market"].functions.cancel(body.listing_id))
     except TxFailed:
         raise HTTPException(400, "Only the seller can cancel an active listing")
+    invalidate_listings()
     return {"tx_hash": tx_hex(receipt)}

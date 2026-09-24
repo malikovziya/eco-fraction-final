@@ -1,7 +1,13 @@
 require("@nomicfoundation/hardhat-toolbox");
+const { vars } = require("hardhat/config");
 
 // Well-known development mnemonic used by the local chain (anvil). Never use it on a public network.
 const DEV_MNEMONIC = "test test test test test test test test test test test junk";
+
+// Public testnet deploy (optional). Secrets live in Hardhat's config-variable store, not in this repo:
+//   npx hardhat vars set AMOY_PRIVATE_KEY        (a fresh test wallet funded from a faucet)
+//   npx hardhat vars set POLYGONSCAN_API_KEY     (optional: verifies source code on the explorer)
+const amoyKey = vars.has("AMOY_PRIVATE_KEY") ? [vars.get("AMOY_PRIVATE_KEY")] : [];
 
 module.exports = {
   solidity: {
@@ -14,5 +20,14 @@ module.exports = {
       chainId: 31337,
       accounts: { mnemonic: DEV_MNEMONIC, count: 10 },
     },
+    amoy: {
+      url: vars.get("AMOY_RPC_URL", "https://rpc-amoy.polygon.technology"),
+      chainId: 80002,
+      accounts: amoyKey,
+    },
   },
+  etherscan: {
+    apiKey: vars.get("POLYGONSCAN_API_KEY", ""),
+  },
+  sourcify: { enabled: false },
 };

@@ -26,15 +26,19 @@ def main() -> None:
     with sync_playwright() as p:
         browser = p.chromium.launch()
         page = None
-        persona = "aylin"
+        persona, lang = "aylin", "tr"
         for arg in args:
-            if arg.startswith("as:"):
-                persona, page = arg[3:], None
+            if arg.startswith("as:") or arg.startswith("lang:"):  # switch persona / UI language
+                if arg.startswith("as:"):
+                    persona = arg[3:]
+                else:
+                    lang = arg[5:]
+                page = None
                 continue
             if page is None:
                 token = httpx.post(f"{API}/auth/persona", json={"persona": persona}).json()["token"]
                 ctx = browser.new_context(viewport={"width": 1440, "height": 900}, device_scale_factor=1)
-                ctx.add_init_script(f"localStorage.setItem('eco.token', '{token}')")
+                ctx.add_init_script(f"localStorage.setItem('eco.token', '{token}'); localStorage.setItem('eco.lang', '{lang}')")
                 page = ctx.new_page()
                 page.on("console", lambda m: m.type == "error" and errors.append(f"{m.text}"))
                 page.on("pageerror", lambda e: errors.append(f"{e}"))
@@ -42,7 +46,7 @@ def main() -> None:
             page.goto(APP + path, wait_until="networkidle")
             time.sleep(6)  # let live data stream in
             name = path.strip("/").replace("/", "_") or "home"
-            page.screenshot(path=out / f"{name}.png", full_page=True)
+            page.screenshot(path=out / f"{name}-{lang}.png", full_page=True)
             print(f"captured {path} as {persona}")
         browser.close()
 

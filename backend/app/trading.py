@@ -1,5 +1,7 @@
 """Secondary-market operations shared by the API and the background market makers."""
 
+import time
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -10,15 +12,34 @@ from .state import platform
 from .wallets import signer_for
 
 
+_closed: set[int] = set()  # listings that can never reopen (filled or cancelled)
+_cache: dict = {"at": 0.0, "rows": None}
+
+
+def invalidate_listings() -> None:
+    _cache["rows"] = None
+
+
 def listings(s: Session) -> list[dict]:
+    """Active listings, cached for 2 s and invalidated on every list/buy made through the platform."""
+    if _cache["rows"] is not None and time.time() - _cache["at"] < 2:
+        return _cache["rows"]
+    _cache["rows"], _cache["at"] = _read_listings(s), time.time()
+    return _cache["rows"]
+
+
+def _read_listings(s: Session) -> list[dict]:
     """Active listings with live availability (sellers keep shares until a buyer fills)."""
     c = chain()
     market, token = c.c["market"], c.c["token"]
     users = {u.wallet_address.lower(): u for u in s.scalars(select(User))}
     out = []
     for i in range(market.functions.listingCount().call()):
+        if i in _closed:
+            continue
         seller, token_id, shares, price, active = market.functions.listings(i).call()
         if not active or shares == 0:
+            _closed.add(i)
             continue
         balance = token.functions.balanceOf(seller, token_id).call()
         asset = platform().by_token[token_id]
@@ -52,6 +73,7 @@ def create_listing(s: Session, user: User, token_id: int, shares: int, price: fl
     ensure_trading_approvals(user)
     receipt = c.send(signer_for(user), c.c["market"].functions.list(token_id, shares, to_usdc(price)))
     listing_id = c.events("market", "Listed", receipt)[0]["args"]["listingId"]
+    invalidate_listings()
     asset = platform().by_token[token_id]
     hub.publish("listing", {"listing_id": listing_id, "asset_id": asset.id, "shares": shares, "price_usdc": price,
                             "seller": _mask(user.name)})
@@ -66,6 +88,7 @@ def fill_listing(s: Session, buyer: User, listing_id: int, shares: int) -> dict:
     except TxFailed as e:
         raise ValueError("Trade reverted on-chain") from e
     ev = c.events("market", "Traded", receipt)[0]["args"]
+    invalidate_listings()
     seller_addr, token_id, _, price, _ = c.c["market"].functions.listings(listing_id).call()
     seller = s.scalar(select(User).where(User.wallet_address == seller_addr))
     asset = platform().by_token[token_id]

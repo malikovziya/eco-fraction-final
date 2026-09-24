@@ -53,9 +53,23 @@ def asset_summary(s: Session, asset_id: str, with_esg: bool = True) -> dict:
         "investors": investors, "live": p.latest.get(asset.id), "activeAlerts": sorted(set(alerts)),
     }
     if with_esg:
-        esg = score_asset(s, asset, p.social[asset.id])
-        out["esg"] = {"score": esg["score"], "rating": esg["rating"]}
+        out["esg"] = cached_esg(s, asset_id)
     return out
+
+
+_esg_cache: dict[str, tuple[float, dict]] = {}
+
+
+def cached_esg(s: Session, asset_id: str) -> dict:
+    """ESG headline per asset, recomputed at most every 5 s (it scans the readings table)."""
+    hit = _esg_cache.get(asset_id)
+    if hit and time.time() - hit[0] < 5:
+        return hit[1]
+    p = platform()
+    esg = score_asset(s, p.assets[asset_id], p.social[asset_id])
+    value = {"score": esg["score"], "rating": esg["rating"]}
+    _esg_cache[asset_id] = (time.time(), value)
+    return value
 
 
 @router.get("/health")
@@ -350,3 +364,12 @@ def app_config() -> dict:
 
     c = chain()
     return {"fx": FX_RATES, "params": c.deployment["params"], "chainId": c.deployment["chainId"]}
+
+
+@router.get("/chain/public")
+def public_deployment() -> dict | None:
+    """The optional public-testnet deployment (contracts/deployments/amoy.json), if one exists."""
+    from ..config import ROOT_DIR
+
+    path = ROOT_DIR / "contracts" / "deployments" / "amoy.json"
+    return json.loads(path.read_text()) if path.exists() else None

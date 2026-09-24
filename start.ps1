@@ -1,5 +1,7 @@
 # Starts the full Eco-Fraction stack: Docker infra + backend + frontend.
-# Usage: .\start.ps1        (first run installs dependencies automatically)
+# Usage: .\start.ps1         production frontend (fast page loads; use this for the demo)
+#        .\start.ps1 -Dev    hot-reloading frontend and backend for development
+param([switch]$Dev)
 # Native tools (docker, pip, npm) write progress to stderr, so rely on exit codes, not ErrorAction.
 $ErrorActionPreference = 'Continue'
 $root = $PSScriptRoot
@@ -41,7 +43,7 @@ if (-not (Test-Path "$root\backend\models\anomaly_xgb.json")) {
 }
 # Services run hidden and log to files; a console window can stall request handling.
 Start-Process -FilePath "$venv\Scripts\python.exe" `
-    -ArgumentList '-m', 'uvicorn', 'app.main:app', '--reload', '--port', '8100' `
+    -ArgumentList (@('-m', 'uvicorn', 'app.main:app', '--port', '8100') + $(if ($Dev) { @('--reload') } else { @() })) `
     -WorkingDirectory "$root\backend" -WindowStyle Hidden `
     -RedirectStandardOutput "$logs\backend.out.log" -RedirectStandardError "$logs\backend.log"
 
@@ -55,7 +57,23 @@ foreach ($svc in 'simulator', 'bridge') {
 
 Write-Host '[4/4] Starting frontend...' -ForegroundColor Cyan
 if (-not (Test-Path "$root\frontend\node_modules")) { npm --prefix "$root\frontend" install --no-fund --no-audit }
-Start-Process -FilePath 'cmd.exe' -ArgumentList '/c', 'npm run dev' `
+$frontendCmd = 'npm run dev'
+if (-not $Dev) {
+    # Rebuild only when a frontend source is newer than the last production build
+    $buildId = "$root\frontend\.next\BUILD_ID"
+    $latest = Get-ChildItem "$root\frontend\src", "$root\frontend\next.config.ts", "$root\frontend\package.json" -Recurse -File |
+        Sort-Object LastWriteTime -Descending | Select-Object -First 1
+    if (-not (Test-Path $buildId) -or $latest.LastWriteTime -gt (Get-Item $buildId).LastWriteTime) {
+        Write-Host '   Building production frontend (only after code changes, ~1 minute)...'
+        Push-Location "$root\frontend"
+        cmd /c "npx next build > `"$logs\frontend-build.log`" 2>&1"
+        $buildExit = $LASTEXITCODE
+        Pop-Location
+        if ($buildExit -ne 0) { throw "Frontend build failed, see $logs\frontend-build.log" }
+    }
+    $frontendCmd = 'npm run start'
+}
+Start-Process -FilePath 'cmd.exe' -ArgumentList '/c', $frontendCmd `
     -WorkingDirectory "$root\frontend" -WindowStyle Hidden `
     -RedirectStandardOutput "$logs\frontend.log" -RedirectStandardError "$logs\frontend.err.log"
 

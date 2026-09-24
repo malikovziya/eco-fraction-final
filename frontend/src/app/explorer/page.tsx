@@ -1,12 +1,13 @@
 "use client";
 
-import { Blocks } from "lucide-react";
+import { Blocks, ExternalLink } from "lucide-react";
 import { Badge, Card, SectionTitle, Skeleton, TxLink } from "@/components/ui";
 import { useData } from "@/lib/live";
 import { usePrefs } from "@/lib/prefs";
 
 type Recent = { hash: string; block: number; timestamp: number; from: string; to_contract: string | null; function: string | null };
 type Contracts = { chainId: number; network: string; contracts: Record<string, string> };
+type PublicDeployment = { network: string; chainId: number; explorer: string; contracts: Record<string, string> };
 
 const CONTRACT_NAMES: Record<string, string> = {
   usdc: "MockUSDC", kyc: "KYCRegistry", token: "AssetToken (ERC-1155)", oracle: "EnergyOracle",
@@ -14,9 +15,10 @@ const CONTRACT_NAMES: Record<string, string> = {
 };
 
 export default function ExplorerPage() {
-  const { t, num } = usePrefs();
+  const { t, tx, num } = usePrefs();
   const { data: recent } = useData<Recent[]>("/chain/recent?limit=30", { interval: 3000 });
   const { data: contracts } = useData<Contracts>("/chain/contracts");
+  const { data: publicDep } = useData<PublicDeployment | null>("/chain/public");
 
   return (
     <div className="space-y-6">
@@ -54,6 +56,21 @@ export default function ExplorerPage() {
             </div>
           )}
         </Card>
+        <div className="space-y-6">
+        {publicDep && (
+          <Card className="glow-wind h-fit">
+            <SectionTitle title={tx("Polygon Amoy (herkese açık testnet)", "Polygon Amoy (public testnet)")}
+              hint={tx("Aynı sözleşmeler, herkesin doğrulayabileceği açık ağda", "The same contracts, on a public network anyone can inspect")} />
+            <div className="space-y-2.5">
+              {Object.entries(publicDep.contracts).map(([k, addr]) => (
+                <a key={k} href={`${publicDep.explorer}/address/${addr}#code`} target="_blank" rel="noreferrer" className="block hover:text-wind">
+                  <div className="flex items-center gap-1.5 text-sm font-medium">{CONTRACT_NAMES[k] ?? k}<ExternalLink className="size-3" /></div>
+                  <div className="break-all font-mono text-[11px] text-faint">{addr}</div>
+                </a>
+              ))}
+            </div>
+          </Card>
+        )}
         <Card className="h-fit">
           <SectionTitle title={t("ex.contracts")} hint={contracts ? `${contracts.network} · chainId ${contracts.chainId}` : ""} />
           <div className="space-y-2.5">
@@ -65,6 +82,7 @@ export default function ExplorerPage() {
             ))}
           </div>
         </Card>
+        </div>
       </div>
     </div>
   );

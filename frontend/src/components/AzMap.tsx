@@ -67,7 +67,7 @@ export function AzMap({ assets }: { assets: Asset[] }) {
       {/* Baku reference */}
       <g transform={`translate(${project(49.87, 40.41).join(",")})`}>
         <circle r="2.5" fill="#8b98b2" />
-        <text x="6" y="4" className="fill-muted text-[11px]">Bakı</text>
+        <text x="-6" y="4" textAnchor="end" className="fill-muted text-[11px]">Bakı</text>
       </g>
 
       {assets.map((a) => {
