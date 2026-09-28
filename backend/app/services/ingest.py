@@ -17,7 +17,7 @@ from sqlalchemy import select
 from iot import topics
 
 from ..config import FLAG_MIN_SUSPICIOUS, FRAUD_THRESHOLD
-from ..db import Alert, Batch, HourlyEnergy, Reading, Rejection, SessionLocal
+from ..db import Alert, Batch, ForecastLog, HourlyEnergy, Reading, Rejection, SessionLocal
 from ..hub import hub
 from ..seed import backfill_history
 from ..state import platform
@@ -123,7 +123,14 @@ class Ingest:
             rows = s.scalars(select(HourlyEnergy).where(HourlyEnergy.asset_id == asset.id)
                              .order_by(HourlyEnergy.hour.desc()).limit(48)).all()
         history = [(datetime.fromisoformat(r.hour), r.ratio) for r in reversed(rows)]
-        p.forecasts[asset.id] = p.forecaster.forecast(asset, history)
+        p.forecasts[asset.id] = forecast = p.forecaster.forecast(asset, history)
+        if forecast:  # remember the one-hour-ahead prediction for the risk engine
+            with SessionLocal() as s:
+                nxt = forecast[0]
+                if not s.scalar(select(ForecastLog.id).where(ForecastLog.asset_id == asset.id,
+                                                             ForecastLog.hour == nxt["hour"])):
+                    s.add(ForecastLog(asset_id=asset.id, hour=nxt["hour"], predicted_kwh=nxt["energy_kwh"]))
+                    s.commit()
 
     # ── Hourly batch ────────────────────────────────────────────────────────
 

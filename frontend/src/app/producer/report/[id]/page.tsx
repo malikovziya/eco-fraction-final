@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth";
 import { useData, useLive } from "@/lib/live";
 import { usePrefs } from "@/lib/prefs";
 import type { Esg } from "@/components/EsgPanel";
+import type { Risk } from "@/components/RiskPanel";
 
 type Report = {
   asset: {
@@ -16,6 +17,7 @@ type Report = {
     revenue_24h_usdc: number; forecast_next_24h_kwh: number;
   };
   esg: Esg;
+  risk: Risk;
   batches: { id: number; period_start: string; energy_kwh: number; verdict: string; status: string; revenue_usdc: number | null; data_hash: string }[];
   alerts: { kind: string; severity: string; title: string; detail: string; title_tr: string | null; detail_tr: string | null; active: boolean; created_at: string }[];
   integrity: { anchored_batches: number; flagged_batches: number; rejected_messages: number };
@@ -117,6 +119,30 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
         </Section>
 
         <Section title={tx("5. Risk değerlendirmesi", "5. Risk assessment")}>
+          <div className="mb-3 rounded-lg border border-slate-200 p-3">
+            <div className="flex items-baseline justify-between">
+              <span className="font-semibold text-slate-900">{tx("YZ risk skoru (canlı)", "AI risk score (live)")}</span>
+              <span className={`text-lg font-bold ${r.risk.level === "low" ? "text-emerald-700" : r.risk.level === "medium" ? "text-amber-600" : "text-red-600"}`}>
+                {r.risk.score}/100 · {{ low: tx("Düşük", "Low"), medium: tx("Orta", "Medium"), high: tx("Yüksek", "High") }[r.risk.level]}
+              </span>
+            </div>
+            <div className="mt-1.5 grid grid-cols-3 gap-2 text-xs text-slate-600">
+              <span>{tx("Manipülasyon (XGBoost)", "Fraud signal (XGBoost)")}: <b>{r.risk.components.fraud.points}/{r.risk.components.fraud.max}</b></span>
+              <span>{tx("Tahmine göre performans (LSTM)", "Performance vs forecast (LSTM)")}: <b>{r.risk.components.performance.points}/{r.risk.components.performance.max}</b></span>
+              <span>{tx("Veri güvenilirliği (Ed25519)", "Data trust (Ed25519)")}: <b>{r.risk.components.data.points}/{r.risk.components.data.max}</b></span>
+            </div>
+            {r.risk.forecast.status === "ok" && r.risk.forecast.gap != null && (
+              <p className="mt-1.5 text-xs text-slate-600">
+                {tx(`Son 24 saat: ${num(r.risk.forecast.actual_mwh, 1)} MWh gerçekleşen, ${num(r.risk.forecast.forecast_mwh, 1)} MWh YZ tahmini (fark %${num(r.risk.forecast.gap * 100)}; normal aralık ±%${num(r.risk.forecast.band * 100)}).`,
+                  `Last 24 h: ${num(r.risk.forecast.actual_mwh, 1)} MWh reported vs ${num(r.risk.forecast.forecast_mwh, 1)} MWh AI forecast (gap ${num(r.risk.forecast.gap * 100)}%; normal band ±${num(r.risk.forecast.band * 100)}%).`)}
+              </p>
+            )}
+            <ul className="mt-1.5 list-disc pl-4 text-xs text-slate-600">
+              {r.risk.reasons.length === 0
+                ? <li>{tx("Risk sinyali yok: tüm kontroller normal.", "No risk signals: all checks normal.")}</li>
+                : r.risk.reasons.map((x) => <li key={x.en}>{lang === "tr" ? x.tr : x.en}</li>)}
+            </ul>
+          </div>
           <table className="w-full border-collapse text-xs">
             <thead>
               <tr className="bg-emerald-700 text-left text-white">

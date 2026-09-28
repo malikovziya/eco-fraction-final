@@ -165,6 +165,17 @@ def deployment_marker() -> str:
     return json.loads(DEPLOYMENT_FILE.read_text())["deployedAt"]
 
 
+class ForecastLog(Base):
+    """What the LSTM predicted for an hour before it happened (one hour ahead), so the risk
+    engine can later compare it with the energy actually reported."""
+
+    __tablename__ = "forecast_log"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    asset_id: Mapped[str] = mapped_column(String, index=True)
+    hour: Mapped[str] = mapped_column(String, index=True)  # simulated ISO hour start
+    predicted_kwh: Mapped[float] = mapped_column(Float)
+
+
 def init_db() -> bool:
     """Create tables; wipe everything if the chain was redeployed. Returns True if reset."""
     Base.metadata.create_all(engine)

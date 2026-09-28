@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from ..chain import chain, from_usdc
 from ..db import Activity, Alert, Batch, HourlyEnergy, Reading, Rejection, User
 from ..esg import BENCHMARK_CF, score_asset
+from ..risk import score_risk
 from ..services.ingest import batch_hash
 from ..services.simctl import simctl
 from ..state import platform
@@ -132,6 +133,14 @@ def forecast(asset_id: str, s: Session = Depends(get_db)) -> dict:
 def esg(asset_id: str, s: Session = Depends(get_db)) -> dict:
     p = platform()
     return score_asset(s, p.assets[asset_id], p.social[asset_id])
+
+
+@router.get("/assets/{asset_id}/risk")
+def risk(asset_id: str, s: Session = Depends(get_db)) -> dict:
+    p = platform()
+    if asset_id not in p.assets:
+        raise HTTPException(404, "Unknown asset")
+    return score_risk(s, p.assets[asset_id])
 
 
 @router.get("/assets/{token_id}/metadata")

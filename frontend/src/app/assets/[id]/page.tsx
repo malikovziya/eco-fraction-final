@@ -8,6 +8,7 @@ import { use, useState } from "react";
 import { ForecastChart, LiveProductionChart } from "@/components/charts";
 import { type Esg, EsgPanel } from "@/components/EsgPanel";
 import { InvestBox } from "@/components/InvestBox";
+import { type Risk, RiskBadge, RiskPanel } from "@/components/RiskPanel";
 import { Badge, Card, EsgBadge, KindIcon, KindLabel, Progress, SectionTitle, Skeleton, TxLink, formatPower } from "@/components/ui";
 import { VerifyDialog } from "@/components/VerifyDialog";
 import { useData, useLive, useLiveEvent } from "@/lib/live";
@@ -27,6 +28,7 @@ export default function AssetPage({ params }: { params: Promise<{ id: string }> 
   const { data: forecast } = useData<Forecast>(`/assets/${id}/forecast`, { refreshOn: ["batch_closed"] });
   const { data: esg } = useData<Esg>(`/assets/${id}/esg`, { refreshOn: ["batch_settled"] });
   const { data: batches } = useData<BatchT[]>(`/batches?asset_id=${id}&limit=12`, { refreshOn: ["batch_settled", "batch_closed"] });
+  const { data: risk } = useData<Risk>(`/assets/${id}/risk`, { refreshOn: ["batch_settled", "alert", "multisig"] });
 
   if (!asset) return <Skeleton className="h-96" />;
   const live = latest[id] ?? asset.live;
@@ -54,7 +56,10 @@ export default function AssetPage({ params }: { params: Promise<{ id: string }> 
             </div>
           </div>
         </div>
-        <EsgBadge rating={asset.esg.rating} score={asset.esg.score} size="lg" />
+        <div className="flex items-center gap-2">
+          {risk && <RiskBadge risk={risk} />}
+          <EsgBadge rating={asset.esg.rating} score={asset.esg.score} size="lg" />
+        </div>
       </div>
 
       {/* Escrow banner */}
@@ -104,6 +109,7 @@ export default function AssetPage({ params }: { params: Promise<{ id: string }> 
 
         <div className="space-y-6">
           <InvestBox asset={asset} onDone={reload} />
+          {risk && <RiskPanel risk={risk} />}
           <Card>
             <SectionTitle title={t("asset.about")} />
             <dl className="space-y-2 text-sm">

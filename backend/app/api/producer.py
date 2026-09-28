@@ -8,6 +8,7 @@ from ..chain import chain, from_usdc
 from ..config import GRID_CO2_KG_PER_KWH
 from ..db import Activity, Alert, Batch, HourlyEnergy, Rejection, Trade, User
 from ..esg import BENCHMARK_CF, score_asset
+from ..risk import score_risk
 from ..state import platform
 from .deps import current_user, get_db, require_role
 
@@ -110,7 +111,7 @@ def report(asset_id: str, user: User = Depends(current_user), s: Session = Depen
     rejected = s.scalar(select(func.count()).select_from(Rejection).where(Rejection.asset_id == asset_id)) or 0
     anchored = [b for b in batches if b.chain_batch_id is not None]
     return {
-        "asset": _asset_ops(s, asset), "esg": esg,
+        "asset": _asset_ops(s, asset), "esg": esg, "risk": score_risk(s, asset),
         "batches": [{"id": b.id, "period_start": b.period_start, "energy_kwh": b.energy_wh / 1000,
                      "verdict": b.verdict, "status": b.status, "revenue_usdc": b.revenue_usdc,
                      "data_hash": "0x" + b.data_hash, "tx_record": b.tx_record} for b in batches[:12]],
