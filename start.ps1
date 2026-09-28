@@ -28,10 +28,27 @@ if ($missing) {
     exit 1
 }
 
+function Test-ChainHasContracts {
+    # True when the local chain answers and our deployed USDC contract exists on it
+    try {
+        $address = (Get-Content "$root\contracts\deployments\localhost.json" -Raw | ConvertFrom-Json).contracts.usdc.address
+        $body = @{ jsonrpc = '2.0'; id = 1; method = 'eth_getCode'; params = @($address, 'latest') } | ConvertTo-Json -Compress
+        $reply = Invoke-RestMethod -Uri 'http://127.0.0.1:8545' -Method Post -Body $body -ContentType 'application/json' -TimeoutSec 5
+        return [bool]($reply.result -and $reply.result -ne '0x')
+    } catch {
+        return $false
+    }
+}
+
 Write-Host '[1/4] Starting infrastructure (MQTT, Kafka, chain)...' -ForegroundColor Cyan
 if (Get-NetTCPConnection -LocalPort 8100 -State Listen -ErrorAction SilentlyContinue) {
-    Write-Host 'Eco-Fraction already appears to be running. Run .\stop.ps1 first.' -ForegroundColor Yellow
-    exit 1
+    if (Test-ChainHasContracts) {
+        Write-Host 'Eco-Fraction is already running. Use .\reset.ps1 for a fresh demo, or .\stop.ps1 to stop it.' -ForegroundColor Yellow
+        exit 1
+    }
+    # e.g. Docker restarted and recreated an empty chain under a still-running backend
+    Write-Host '   Found a stale run whose blockchain was reset. Stopping it and starting fresh...' -ForegroundColor Yellow
+    & "$root\stop.ps1"
 }
 # The chain is recreated on every start so each demo begins from the same clean state
 cmd /c "docker compose -f `"$root\infra\docker-compose.yml`" up -d 2>&1 && docker compose -f `"$root\infra\docker-compose.yml`" up -d --force-recreate chain 2>&1"
