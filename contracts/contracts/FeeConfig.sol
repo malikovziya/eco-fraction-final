@@ -11,7 +11,7 @@ abstract contract FeeConfig is AccessControl {
     uint16 public constant MAX_FEE_BPS = 150;
 
     uint16 public feeBps;
-    address public treasury;
+    address public immutable treasury;
 
     event FeeChanged(uint16 feeBps);
 

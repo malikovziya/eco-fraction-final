@@ -17,7 +17,7 @@ contract PrimaryMarket is FeeConfig, ReentrancyGuard {
 
     IERC20 public immutable usdc;
     AssetToken public immutable token;
-    uint256 public minInvestment; // USDC (6 decimals)
+    uint256 public immutable minInvestment; // USDC (6 decimals)
     mapping(uint256 => uint256) public offeredRemaining; // assetId -> shares still for sale
 
     event OfferingOpened(uint256 indexed assetId, uint256 shares);

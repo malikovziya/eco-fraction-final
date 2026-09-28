@@ -37,7 +37,7 @@ contract RevenueDistributor is AccessControl, ReentrancyGuard, IShareTransferHoo
     IERC20 public immutable usdc;
     AssetToken public immutable token;
     EnergyOracle public immutable oracle;
-    address public offtaker; // grid buyer paying for the energy
+    address public immutable offtaker; // grid buyer paying for the energy
     uint256 public tariffPerKWh; // USDC (6 decimals) per kWh
 
     mapping(uint256 => uint256) public magnifiedRevenuePerShare; // assetId -> accumulator
@@ -68,6 +68,7 @@ contract RevenueDistributor is AccessControl, ReentrancyGuard, IShareTransferHoo
         usdc = usdc_;
         token = token_;
         oracle = oracle_;
+        require(offtaker_ != address(0), "zero offtaker");
         offtaker = offtaker_;
         tariffPerKWh = tariffPerKWh_;
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
