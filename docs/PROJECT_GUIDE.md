@@ -121,7 +121,7 @@ A rejected message never reaches the AI. It's stored, and it raises a "forged de
 Every simulated hour (12 real seconds at the default speed) the backend closes a **batch** for each asset:
 
 1. **Collect** the hour's 12 readings (one per 5 simulated minutes).
-2. **Hash.** Compute a SHA-256 hash over the exact signed messages. Anyone can recompute this later from the raw data; that's what the **Verify** button does.
+2. **Hash.** Compute a SHA-256 hash over the exact signed messages. Anyone can recompute this later from the raw data; that's what the **Verify** button does. The check runs **in the viewer's own browser**: the browser downloads the raw signed readings, hashes them itself, and reads the recorded hash directly from the chain, so the platform server's answer is not used. If the browser can't do this (no Web Crypto, chain unreachable), the dialog falls back to the server-side check and says so.
 3. **Judge.**
    - A reading is *suspicious* if its fraud probability (inflate + flatline) is above 50%.
    - A batch is **flagged** if **3 or more of its 12 readings** are suspicious.
@@ -265,6 +265,27 @@ The score runs from 0 to 100. **Weights: Environmental 40%, Social 20%, Governan
 
 Because G reacts to live data, a tampering demo visibly lowers the asset's ESG score.
 
+#### AI risk engine: live risk level per asset (`backend/app/risk.py`)
+
+Every asset gets a **risk score from 0 to 100** and a level: **Low** (<20), **Medium** (20–44) or **High** (≥45). It is recalculated from live data and shown on the asset page and in the printable ESG & risk report, with plain-language reasons.
+
+| Signal | Model | Points | Rule |
+|---|---|---|---|
+| **Fraud signal** | XGBoost | up to 45 | 45 while flagged revenue is held (not yet decided by the multisig); 25 if flagged hours in the last 24 h were resolved |
+| **Performance vs forecast** | LSTM (+ XGBoost wear) | up to 35 | Reported energy over the last 24 h vs. the LSTM's one-hour-ahead forecast for those same hours. Outside the normal band: 20; far outside: 35. An open maintenance alert gives at least 20 |
+| **Data trust** | Ed25519 | up to 20 | 10 if any forged-device message was blocked in the last 24 h; 20 if 12 or more |
+
+**How the LSTM is used.** Each hour the app stores the forecast for the next hour (`forecast_log` table). Once 24 compared hours exist (about 5 minutes after start at 300×), it compares them with what was actually reported. Until then the panel shows "Building the forecast comparison: n/24 hours". On very calm days (a 24 h forecast below 0.2 full-load hours) the comparison is skipped as unfair.
+
+**Where the thresholds come from.** `backend/scripts/calibrate_risk.py` runs the same simulator offline for 40 normal days with unseen seeds, plus degradation and meter-inflation scenarios, and measures the 24 h forecast gap:
+
+| | Normal (1st–99th percentile) | Worn equipment | Inflated meter |
+|---|---|---|---|
+| Solar | −18% … +12% | −44% … −58% | +111% or more |
+| Wind | −26% … +22% | −27% … −68% | +32% or more |
+
+So the normal band is **±20% for solar** and **±30% for wind**, and "far outside" is ±35% / ±45%. In a live test, healthy plants stayed Low for 4 simulated days. Fraud took Khizi to High within 40 s, wear and forging took assets to Medium, and everything returned to Low after the faults were cleared and the multisig resolved the escrow.
+
 ### 6.4 Blockchain layer: the 8 smart contracts (`contracts/`)
 
 Solidity 0.8.24, built on the audited OpenZeppelin 5 libraries, with Hardhat for testing.
@@ -339,11 +360,11 @@ Next.js 16 and TypeScript, with Tailwind, Recharts and Motion. It uses a dark "e
 |---|---|---|
 | **Home** `/` | Everyone | Live stats (MW now, revenue distributed, verified MWh, CO₂, investors, escrow), Azerbaijan map with glowing assets, live event feed, problem → solution, how it works |
 | **Assets** `/assets` | Everyone | 6 offerings: yield, price, live output, % funded, investors, ESG |
-| **Asset detail** | Everyone | Live chart (red dots = AI suspicion), LSTM forecast vs actual, on-chain batch table with **Verify**, ESG breakdown, invest box, AI audit feed, escrow banner with "why flagged" |
+| **Asset detail** | Everyone | Live chart (red dots = AI suspicion), LSTM forecast vs actual, on-chain batch table with **Verify** (checked in the browser), ESG breakdown, **AI risk assessment** (Low/Medium/High with reasons), invest box, AI audit feed, escrow banner with "why flagged" |
 | **Market** `/market` | Investors | Price tickers vs NAV, order book, buy dialog, sell form, live trade tape |
 | **Portfolio** | Investors | Ticking earnings, earning rate, projected annual income, holdings, activity with tx links, Open Banking deposit/withdraw |
 | **Producer panel** | Producers | Financing raised, investors, performance ratio, 24h vs forecast, maintenance alerts with a suggested action, SaaS plans |
-| **ESG & risk report** | Producers, signers | Printable A4 report, "Download as PDF" |
+| **ESG & risk report** | Producers, institutional investors, signers | Printable A4 report with the live AI risk score, "Download as PDF" |
 | **Governance** | Signers | Escrowed batches with evidence, propose release/refund, second signature, proposal history |
 | **Business model** `/economics` | Everyone | Live treasury, the 4 revenue streams, market opportunity figures |
 | **Live architecture** | Everyone | Figure 1 animated by real events; click a layer for its tech and live counters |
@@ -476,6 +497,9 @@ Why custodial: no MetaMask pop-ups on stage, and the right experience for non-cr
 | **End-to-end test** (`backend/scripts/e2e.py`) | The whole platform live: invest, $40 rejected, auto-payout, fraud → flagged → escrow → hash verified → multisig release, forged device blocked, degradation alert, explorer decoding, signup → KYC → deposit → invest, marketplace trade, Open Banking deposit and withdraw (wrong OTP refused), producer report, economics | All pass |
 | **Soak test** (`backend/scripts/soak.py 20`) | 20 minutes (~4 simulated days) with random faults: 7,288 readings, 612 batches, 17 flagged, 100 forgeries blocked | No crashes, stable memory, no real errors. Found 2 slow endpoints, fixed: listings 1.2 s → 6 ms, assets 300 ms → 24 ms |
 | **Visual check** (`frontend/scripts/screenshots.py`) | Every page in a real browser, both languages | 0 console errors |
+| **Security scan** (Slither, 102 detectors) | Known smart-contract vulnerability patterns | 0 vulnerabilities; 4 findings improved, 9 reviewed and explained in `docs/SECURITY_SCAN.md` |
+| **Risk calibration** (`backend/scripts/calibrate_risk.py`) | Forecast-gap bands for the AI risk engine, from 40 simulated normal days vs. fault scenarios | Normal ±20% solar / ±30% wind |
+| **Browser Verify** | The browser's hash equals the on-chain hash for every batch | 486 of 486 batches (normal, fraud, frozen, night, 300× and 1200×); a one-digit change is detected |
 | **Type check + lint** | Code quality | 0 problems |
 
 ---
@@ -558,7 +582,8 @@ The important choices we made, and why.
 | Sensors are simulated | "Any device that signs MQTT messages plugs in unchanged. In production the bridge becomes AWS IoT Core with device certificates and TLS 1.3." |
 | Local chain, not mainnet | "Same contracts; optional Amoy testnet deployment; mainnet after an independent audit." |
 | Custodial keys stored encrypted locally | "Demo setup. Production: HSM/MPC key management, optional self-custody." |
-| Contracts not audited | "22 tests, OpenZeppelin libraries, multisig admin, pause switch. Independent audit before mainnet." |
+| Contracts not audited | "22 tests, a Slither security scan with 0 vulnerabilities, OpenZeppelin libraries, multisig admin, pause switch. Independent audit before mainnet." |
+| Not deployed on public Polygon | "The demo runs on a local copy of the chain so it works offline. The same contracts deploy to Polygon Amoy with `contracts/scripts/deploy-public.js`; the script checks the full gas cost first." |
 | No regulatory approval | "Security-token risk rated HIGH in our report; KYC whitelist built in; pilot planned in the SPK (Türkiye) / Central Bank of Azerbaijan sandboxes." |
 | Demo investors, funds and names are fictional | Say so directly if asked. |
 | Social (S) score is self-declared | "Stated openly in the report; to be audited annually." |

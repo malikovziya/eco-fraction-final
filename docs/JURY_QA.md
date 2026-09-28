@@ -12,7 +12,7 @@ C: Hayır, demo verisi. Her biri gerçek bir zincir üstü cüzdan (KYC onaylı,
 **S: Neler gerçek, neler simülasyon?**
 C: Canlı Mimari sayfasında her katman için yazıyor. Kısaca:
 - **Gerçek, çalışıyor:** MQTT, Kafka akışı, imza doğrulama, XGBoost ve LSTM modelleri, 8 akıllı sözleşme, otomatik ödeme, çoklu imza.
-- **Yerel zincir:** Sözleşmeler Polygon uyumlu yerel bir EVM zincirinde çalışıyor (sahnede internet riski olmasın diye). Aynı sözleşmeler Polygon Amoy testnet'inde de yayında (Blok Gezgini sayfasında Polygonscan bağlantıları). *Amoy dağıtımını yapmadıysanız bu cümleyi söylemeyin.*
+- **Yerel zincir:** Sözleşmeler Polygon uyumlu yerel bir EVM zincirinde çalışıyor (sahnede internet riski olmasın diye). Aynı sözleşmeler Polygon Amoy testnet'ine dağıtılmaya hazır (`deploy-public.js`). *Amoy dağıtımı yapıldıysa: "Blok Gezgini sayfasında Polygonscan bağlantıları var" deyin.*
 - **Simülasyon:** IoT sensörleri (fizik modeliyle), bankalar (PSD2 sandbox), KYC kontrolleri.
 - **Test token:** USDC yerine aynı 6 ondalıklı test token.
 
@@ -35,7 +35,13 @@ C: Üç katmanlı savunma:
 Gerçek sahada buna ek olarak kurcalamaya dayanıklı donanım (secure element) ve sertifikalı sayaçlar kullanılır.
 
 **S: Akıllı sözleşme hatası olursa?**
-C: 22 birim testimiz var: KYC, minimum yatırım, komisyon sınırları, pro-rata dağıtım, emanet, çoklu imza. OpenZeppelin'in denetlenmiş kütüphaneleri kullanılıyor. Tüm yönetici yetkileri 2/3 çoklu imzada; dağıtıcı hesap yetkilerini bırakıyor. Transferler acil durumda durdurulabilir (pause). Ana ağ öncesi bağımsız denetim (audit) planlı.
+C: 22 birim testimiz var: KYC, minimum yatırım, komisyon sınırları, pro-rata dağıtım, emanet, çoklu imza. OpenZeppelin'in denetlenmiş kütüphaneleri kullanılıyor. Tüm yönetici yetkileri 2/3 çoklu imzada; dağıtıcı hesap yetkilerini bırakıyor. Transferler acil durumda durdurulabilir (pause). Ayrıca sektör standardı güvenlik tarayıcısı **Slither** ile (102 kontrol) taradık: **gerçek açık yok**; 4 bulguyu iyileştirdik, kalan 9'u tasarım gereği ve gerekçeleri `docs/SECURITY_SCAN.md` dosyasında. Ana ağ öncesi bağımsız denetim (audit) planlı.
+
+**S: "Doğrula" butonuna neden güvenelim? Sonuçta sizin sunucunuz söylüyor.**
+C: Hayır, sunucumuz söylemiyor. Kontrol **sizin tarayıcınızda** yapılıyor: tarayıcı o saatin imzalı sensör mesajlarını indirip parmak izini (SHA-256) kendisi hesaplıyor ve blokzincirdeki kaydı **doğrudan zincirden** okuyup karşılaştırıyor. Tek bir rakam değişse parmak izi tutmaz. Kısacası: "Bize güvenmeyin, kendiniz doğrulayın."
+
+**S: Platformun anahtarı çalınırsa?**
+C: Platform anahtarı yalnızca operasyonel işleri yapabilir (parti kaydı, ödeme, KYC onayı). Emanetteki parayı hareket ettiremez, bu yetki 2/3 çoklu imzada. Üretimde ayrıca şebeke alıcısının ödeme onayı sınırsız değil, aylık limitli olur (otomatik ödeme talimatındaki limit gibi); böylece anahtar çalınsa bile zarar sınırlı kalır.
 
 **S: Yatırımcı sayısı artınca ödeme maliyeti patlamaz mı?**
 C: Hayır. "Pay başına birikimli gelir" (accumulator) modeli kullanıyoruz: her üretim partisi O(1) maliyetle kaydediliyor, yatırımcı sayısından bağımsız. Otomatik gönderim (keeper) gruplar halinde yapılıyor; yatırımcı istediğinde kendisi de talep edebilir.
@@ -45,6 +51,9 @@ C: Demoda emanetli (custodial) cüzdan kullanıyoruz, anahtarlar şifreli saklan
 
 **S: Neden Polygon?**
 C: Düşük işlem maliyeti (saatlik kayıt ve ödeme ekonomik), EVM uyumlu (standart araçlar, denetçiler), ve raporumuzdaki gibi sürdürülebilirlik odaklı bir ağ.
+
+**S: Polygon'da nerede? Gösterebilir misiniz?**
+C: Canlı demo, internet bağlantısına bağlı kalmamak için blokzincirin yerel bir kopyasında çalışıyor. Aynı sözleşmeler Polygon'un herkese açık test ağına (Amoy) dağıtılmaya hazır; dağıtım betiği önce toplam işlem ücretini kontrol ediyor ve yetmezse hiç başlamıyor. Kod tamamen aynı, yalnızca ağ adresi farklı.
 
 ## Regülasyon
 
@@ -95,6 +104,16 @@ C: Kafka yatay ölçeklenir, AI puanlaması okuma başına milisaniye mertebesin
 
 **S: ESG skoru greenwashing'e açık değil mi?**
 C: Tersine: çevre ve yönetişim puanları canlı veriden hesaplanıyor ve bileşenler açık. Yalnızca sosyal (S) puanı üretici beyanı, bunu raporda açıkça belirtiyoruz. Yıllık bağımsız denetimle doğrulanacak.
+
+**S: Yapay zeka riskleri nasıl analiz ediyor?**
+C: Her varlık için canlı bir **risk skoru (0–100, Düşük/Orta/Yüksek)** üç sinyalden hesaplanıyor:
+1. **Manipülasyon sinyali (XGBoost):** son 24 saatte işaretlenen veya emanette bekleyen saatler.
+2. **Tahmine göre performans (LSTM):** YZ her saat bir sonraki saatin üretimini tahmin ediyor; son 24 saatte gerçekleşen üretim tahminden çok saparsa risk yükseliyor (düşükse olası yıpranma, yüksekse olası sayaç şişirmesi).
+3. **Veri güvenilirliği (Ed25519):** engellenen sahte cihaz mesajları.
+Her skorun yanında gerekçesi düz bir cümleyle yazıyor. Sunumda sayaç manipülasyonu başlatınca risk bir dakika içinde "Yüksek"e çıkıyor.
+
+**S: Risk eşiklerini nasıl belirlediniz?**
+C: Tahmin etmedik, **kalibre ettik**. Aynı simülatörü, modelin hiç görmediği tohumlarla 40 günlük normal çalışma ve arıza senaryolarında çalıştırdık (`backend/scripts/calibrate_risk.py`). Normal günlerde üretim, tahminden güneşte en fazla yaklaşık %18, rüzgarda %26 sapıyor; yıpranmada %44–68, sayaç şişirmesinde %32'nin üstünde. Bu yüzden normal aralık güneşte ±%20, rüzgarda ±%30. Canlı testte sağlıklı santraller 4 simüle gün boyunca hep "Düşük" kaldı, yani yanlış alarm yok.
 
 ## Sonraki adımlar (yol haritası)
 

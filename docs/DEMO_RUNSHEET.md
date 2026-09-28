@@ -51,7 +51,7 @@ Takım VoltLedger · Teknofest Finansal Teknolojiler Yarışması
 **Söylenecek ve gösterilecek:**
 1. **Canlı üretim grafiği:** "Her nokta, sensörün kendi Ed25519 anahtarıyla imzaladığı bir okuma." Grafiğin altındaki cihaz satırını göster (`dev-khizi-wind · seq · Ed25519 ✓`).
 2. **YZ üretim tahmini (LSTM):** "Son 48 saat gerçekleşen, mor kesikli çizgi önümüzdeki 24 saatin tahmini. Model naif tahminden %28 daha iyi."
-3. **Zincir üstü üretim kayıtları:** "Her saat, o saatin tüm okumaları özetlenip (hash) zincire yazılıyor." Bir satırda **Doğrula** butonuna bas: "Ham veriden özeti yeniden hesaplıyoruz ve zincirdekiyle karşılaştırıyoruz: eşleşiyor, veri değiştirilmemiş."
+3. **Zincir üstü üretim kayıtları:** "Her saat, o saatin tüm okumaları özetlenip (hash) zincire yazılıyor." Bir satırda **Doğrula** butonuna bas: "Bu kontrolü sunucumuz değil, **sizin tarayıcınız** yapıyor: ham veriden özeti kendisi hesaplıyor ve doğrudan blokzincirden okuduğu değerle karşılaştırıyor. Eşleşiyor, veri değiştirilmemiş. Bize güvenmeyin, kendiniz doğrulayın."
 4. **ESG skoru:** "ESG beyana dayalı değil: çevre puanı canlı kapasite faktöründen, yönetişim puanı veri bütünlüğünden hesaplanıyor. Bileşenler açık."
 
 ### 4:00 – 5:30 · 50 dolarla yatırım
@@ -69,7 +69,7 @@ Takım VoltLedger · Teknofest Finansal Teknolojiler Yarışması
 2. **Söyle:** "Şimdi santral sahibinin sayacı şişirdiğini varsayalım: gerçekte üretilenden fazlasını raporluyor. İmza geçerli, çünkü cihazın kendisi. Sadece imzaya bakan bir sistem bunu yakalayamaz."
 3. Grafikte **kırmızı noktalar** belirir (birkaç saniye). "YZ her okumayı fizik kurallarıyla karşılaştırıyor: rüzgar hızı bu kadar üretime izin vermiyor."
 4. **Canlı Mimari** sekmesine geç (beklerken): Zeka katmanında kırmızı darbeler görünür. "Raporumuzdaki Şekil 1, gerçek olaylarla çalışıyor."
-5. 10–25 saniye içinde **"YZ manipülasyon tespit etti: gelir emanete alındı"** bildirimi çıkar. Khizi sekmesine dön: kırmızı **emanet bandı** ve "Neden işaretlendi?" açıklaması. "Yapay zeka kara kutu değil: kararın nedenini gösteriyor. Üretim, sensörün izin verdiğinin 2 katı."
+5. 10–25 saniye içinde **"YZ manipülasyon tespit etti: gelir emanete alındı"** bildirimi çıkar. Khizi sekmesine dön: kırmızı **emanet bandı** ve "Neden işaretlendi?" açıklaması. "Yapay zeka kara kutu değil: kararın nedenini gösteriyor. Üretim, sensörün izin verdiğinin 2 katı." Başlıktaki risk rozetini göster: **"Yüksek risk"**. Sağdaki **YZ risk değerlendirmesi** kartında gerekçe hemen yazıyor: "YZ manipülasyon tespit ettiği için gelir bekletiliyor." Birkaç dakika sonra ikinci gerekçe de eklenir: "Üretim YZ tahmininin üstünde: olası sayaç şişirmesi" (LSTM tahmini ile karşılaştırma).
 6. Panelden manipülasyonu **kapat**.
 
 ### 8:30 – 10:00 · Yönetişim: 2/3 çoklu imza
