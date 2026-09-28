@@ -21,7 +21,8 @@ module.exports = {
       accounts: { mnemonic: DEV_MNEMONIC, count: 10 },
     },
     amoy: {
-      url: vars.get("AMOY_RPC_URL", "https://rpc-amoy.polygon.technology"),
+      // Public Amoy endpoint (the official rpc-amoy.polygon.technology was not responding)
+      url: vars.get("AMOY_RPC_URL", "https://polygon-amoy-bor-rpc.publicnode.com"),
       chainId: 80002,
       accounts: amoyKey,
     },

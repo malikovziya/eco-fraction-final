@@ -13,15 +13,22 @@ const { ethers, network } = hre;
 const USDC = (n) => ethers.parseUnits(String(n), 6);
 const CAPEX_PER_KW = { solar: 800, wind: 1300 };
 const assets = require("../../shared/assets.json");
-const MIN_BALANCE = ethers.parseEther("0.3");
+const DEPLOY_GAS = 12_000_000n; // measured: 48 transactions, ~11.6M gas in total
 
 async function main() {
   const [deployer] = await ethers.getSigners();
   if (!deployer) throw new Error("No deployer key. Run: npx hardhat vars set AMOY_PRIVATE_KEY");
   const balance = await ethers.provider.getBalance(deployer);
   console.log(`Network ${network.name} · deployer ${deployer.address} · ${ethers.formatEther(balance)} POL`);
-  if (network.name !== "hardhat" && balance < MIN_BALANCE) {
-    throw new Error("Need at least 0.3 test POL for gas. Top up from a faucet (e.g. faucet.polygon.technology).");
+  if (network.name !== "hardhat") {
+    // Check against today's gas price with a 50% margin, so the deployment never stops halfway
+    const { gasPrice } = await ethers.provider.getFeeData();
+    const needed = (DEPLOY_GAS * gasPrice * 3n) / 2n;
+    console.log(`Gas price ${ethers.formatUnits(gasPrice, "gwei")} gwei · this deployment needs about ${ethers.formatEther(needed)} POL`);
+    if (balance < needed) {
+      throw new Error(`Not enough test POL: have ${ethers.formatEther(balance)}, need about ${ethers.formatEther(needed)}. ` +
+        "Top up from a faucet (e.g. faucet.polygon.technology) and run again. Nothing was deployed.");
+    }
   }
 
   // Two extra signers so the multisig is genuinely 2-of-3 (testnet-only keys, saved locally)
