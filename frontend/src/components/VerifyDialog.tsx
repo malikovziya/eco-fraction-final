@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { CheckCircle2, Loader2, X, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { batchFingerprint, onchainBatchHash } from "@/lib/fingerprint";
 import { usePrefs } from "@/lib/prefs";
 
 type Result = {
@@ -14,18 +15,52 @@ type Result = {
   onchain_hash: string;
   match: boolean;
   sample_reading: Record<string, unknown> | null;
+  checkedBy: "browser" | "server";
 };
 
-/** Recomputes a batch hash from the raw signed readings and compares it with the chain. */
+/** The check runs in this browser: it hashes the raw signed readings itself and reads the
+ *  recorded hash straight from the chain. The server-side check is only a fallback. */
+async function verifyInBrowser(batchId: number): Promise<Result> {
+  const [raw, chain] = await Promise.all([
+    api<{ chain_batch_id: number; readings: string[] }>(`/batches/${batchId}/raw`),
+    api<{ contracts: { oracle: string } }>("/chain/contracts"),
+  ]);
+  const [recomputed, onchain] = await Promise.all([
+    batchFingerprint(raw.readings),
+    onchainBatchHash(chain.contracts.oracle, raw.chain_batch_id),
+  ]);
+  return {
+    batch_id: batchId, chain_batch_id: raw.chain_batch_id, readings: raw.readings.length,
+    recomputed_hash: recomputed, onchain_hash: onchain, match: recomputed === onchain,
+    sample_reading: raw.readings.length ? JSON.parse(raw.readings[0]) : null, checkedBy: "browser",
+  };
+}
+
+async function verifyOnServer(batchId: number): Promise<Result> {
+  return { ...(await api<Omit<Result, "checkedBy">>(`/batches/${batchId}/verify`)), checkedBy: "server" };
+}
+
+async function verify(batchId: number): Promise<Result> {
+  try {
+    const local = await verifyInBrowser(batchId);
+    if (local.match) return local;
+    // Never report a mismatch the server check does not confirm (it would be a browser-side fault)
+    const server = await verifyOnServer(batchId);
+    return server.match ? server : local;
+  } catch {
+    return verifyOnServer(batchId); // e.g. browser without Web Crypto, or chain unreachable
+  }
+}
+
 export function VerifyDialog({ batchId, onClose }: { batchId: number | null; onClose: () => void }) {
-  const { t } = usePrefs();
+  const { t, tx } = usePrefs();
   const [loaded, setLoaded] = useState<Result | null>(null);
   const result = loaded && loaded.batch_id === batchId ? loaded : null;
 
   useEffect(() => {
     if (batchId == null) return;
     // Short pause so the check reads as a computation, not a lookup
-    const timer = setTimeout(() => api<Result>(`/batches/${batchId}/verify`).then(setLoaded).catch(() => {}), 600);
+    const timer = setTimeout(() => verify(batchId).then(setLoaded).catch(() => {}), 600);
     return () => clearTimeout(timer);
   }, [batchId]);
 
@@ -50,6 +85,13 @@ export function VerifyDialog({ batchId, onClose }: { batchId: number | null; onC
                   {result.match ? <CheckCircle2 className="size-5" /> : <XCircle className="size-5" />}
                   {result.match ? t("verify.match") : t("verify.mismatch")}
                 </div>
+                <p className="text-xs text-muted">
+                  {result.checkedBy === "browser"
+                    ? tx("Bu özet sizin tarayıcınızda hesaplandı ve doğrudan blokzincirden okunan değerle karşılaştırıldı. Platform sunucusunun cevabı kullanılmadı.",
+                      "This hash was computed in your browser and compared with the value read directly from the blockchain. The platform server's answer was not used.")
+                    : tx("Bu kontrol platform sunucusu tarafından yapıldı (tarayıcı kontrolü bu cihazda kullanılamadı).",
+                      "This check was performed by the platform server (the browser check was unavailable on this device).")}
+                </p>
                 {result.sample_reading && (
                   <details className="text-xs">
                     <summary className="cursor-pointer text-muted">{t("verify.sample")}</summary>

@@ -216,6 +216,16 @@ def verify_batch(batch_id: int, s: Session = Depends(get_db)) -> dict:
     }
 
 
+@router.get("/batches/{batch_id}/raw")
+def batch_raw(batch_id: int, s: Session = Depends(get_db)) -> dict:
+    """The exact signed device messages of a batch, so a browser can recompute the hash itself."""
+    b = s.get(Batch, batch_id)
+    if b is None or b.chain_batch_id is None:
+        raise HTTPException(404, "Batch not anchored yet")
+    raws = s.scalars(select(Reading.raw).where(Reading.batch_id == batch_id).order_by(Reading.id)).all()
+    return {"batch_id": batch_id, "chain_batch_id": b.chain_batch_id, "readings": list(raws)}
+
+
 @router.get("/alerts")
 def alerts(active: bool | None = None, limit: int = 30, s: Session = Depends(get_db)) -> list[dict]:
     q = select(Alert).order_by(desc(Alert.id)).limit(limit)
