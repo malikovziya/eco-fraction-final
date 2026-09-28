@@ -10,6 +10,7 @@ const PIPELINE_TR: Record<string, string> = {
   "Green bond issuer": "Yeşil tahvil ihraççısı",
 };
 const STAGE_TR: Record<string, string> = { pilot: "pilot", negotiation: "görüşme" };
+const SUBSCRIBER_NAMES: Record<string, string> = { solar: "Caspian Solar", wind: "Absheron Wind", fund: "Evergreen Climate Fund" };
 
 type Econ = {
   live: { treasury_usdc: number; fee_rate: number; primary_volume_usdc: number; primary_fees_usdc: number;
@@ -57,7 +58,7 @@ export default function EconomicsPage() {
           text={tx("Enerji şirketleri ve kurumsal yatırımcılar için gelişmiş ESG analizi, risk raporları ve veri panelleri.",
             "Advanced ESG analytics, risk reports and data dashboards for energy companies and institutional investors.")}
           value={`${money(e.saas.mrr_usd, { decimals: 0 })}/${tx("ay", "mo")}`} valueLabel={`ARR ${money(e.saas.arr_usd, { decimals: 0 })}`}
-          extra={<div className="mt-3 flex flex-wrap gap-1.5">{e.saas.subscribers.map((s) => <Badge key={s.producer}>{s.producer === "solar" ? "Caspian Solar" : "Absheron Wind"} · {s.plan}</Badge>)}</div>} />
+          extra={<div className="mt-3 flex flex-wrap gap-1.5">{e.saas.subscribers.map((s) => <Badge key={s.producer}>{SUBSCRIBER_NAMES[s.producer] ?? s.producer} · {s.plan}</Badge>)}</div>} />
         <Stream icon={<FileKey2 className="size-5 text-solar" />} n="3" title={tx("Lisanslama", "Licensing")}
           badge={<Badge tone="warn">{tx("Satış hattı", "Pipeline")}</Badge>}
           text={tx("IoT + YZ ESG doğrulama altyapısı, üçüncü taraf enerji projelerine ve yeşil tahvil ihraççılarına lisanslanır.",

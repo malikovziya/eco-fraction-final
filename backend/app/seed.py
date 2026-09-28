@@ -17,15 +17,19 @@ from .wallets import approve_platform_contracts, deposit, new_wallet, verify_kyc
 PERSONAS = [
     # key, name, role, title, dev-mnemonic account role (None = new custodial wallet)
     ("aylin", "Aylin Kaya", "investor", "Individual investor", None),
+    ("fund", "Evergreen Climate Fund", "investor", "Institutional investor", None),
     ("caspian-solar", "Caspian Solar Holdings", "producer", "Solar producer", "solarProducer"),
     ("absheron-wind", "Absheron Wind Energy", "producer", "Wind producer", "windProducer"),
     ("signer-risk", "Leyla Hasanova", "signer", "Chief Risk Officer", 0),
     ("signer-compliance", "Murat Demir", "signer", "Compliance Officer", 1),
     ("signer-cto", "Elvin Aliyev", "signer", "Chief Technology Officer", 2),
 ]
-AYLIN_STARTING_USDC = 10_000
-# Aylin already holds ~$8,000 across four assets (token id -> shares), so payouts are visible
-AYLIN_PORTFOLIO = {1: 300, 5: 250, 6: 150, 4: 100}
+# Investor personas start funded and invested (token id -> shares), so payouts are visible:
+# Aylin holds ~$8,000 across four assets; the fund holds ~$1.6M across the four largest offerings
+INVESTOR_SEED = {
+    "aylin": (10_000, {1: 300, 5: 250, 6: 150, 4: 100}),
+    "fund": (2_000_000, {5: 60_000, 2: 50_000, 1: 30_000, 6: 20_000}),
+}
 
 
 def seed_personas(s: Session) -> None:
@@ -43,10 +47,11 @@ def seed_personas(s: Session) -> None:
         s.add(user)
         s.flush()
         if role == "investor":
+            starting_usdc, portfolio = INVESTOR_SEED[key]
             verify_kyc(s, user)
             approve_platform_contracts(user)
-            deposit(s, user, AYLIN_STARTING_USDC, method="seed")
-            seed_portfolio(s, user, AYLIN_PORTFOLIO)
+            deposit(s, user, starting_usdc, method="seed")
+            seed_portfolio(s, user, portfolio)
     s.commit()
 
 

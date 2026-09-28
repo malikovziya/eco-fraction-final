@@ -2,7 +2,7 @@
 
 import clsx from "clsx";
 import { motion } from "motion/react";
-import { BadgeCheck, Building2, Check, KeyRound, Loader2, ShieldCheck, UserRound } from "lucide-react";
+import { BadgeCheck, Building2, Check, KeyRound, Landmark, Loader2, ShieldCheck, UserRound } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
@@ -71,7 +71,7 @@ function Login() {
           <p className="mt-1 text-sm text-muted">{t("auth.personasHint")}</p>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             {personas.map((p) => {
-              const Icon = ROLE_ICON[p.role];
+              const Icon = p.title === "Institutional investor" ? Landmark : ROLE_ICON[p.role];
               return (
                 <button key={p.persona} onClick={() => goPersona(p)}
                   className="flex items-start gap-3 rounded-xl border border-line bg-surface-2/50 p-4 text-left transition hover:border-wind/50 hover:bg-surface-2">

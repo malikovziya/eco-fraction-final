@@ -15,6 +15,7 @@ from ..security import check_password, hash_password, new_session_token
 from ..state import platform
 from ..wallets import approve_platform_contracts, deposit, new_wallet, signer_for, verify_kyc
 from .deps import current_user, get_db, require_role
+from .producer import INSTITUTIONAL_PLAN, PLANS, is_institutional
 
 router = APIRouter(prefix="/api")
 
@@ -203,6 +204,7 @@ def portfolio(user: User = Depends(current_user), s: Session = Depends(get_db)) 
         "projected_annual_income_usdc": round(annual_income, 2),
         "portfolio_esg": round(esg_weighted / invested_value, 1) if invested_value else None,
         "earning_rate_per_sim_hour": round(recent / sim_hours, 6),
+        "subscription": {"plan": INSTITUTIONAL_PLAN, **PLANS[INSTITUTIONAL_PLAN]} if is_institutional(user) else None,
     }
 
 

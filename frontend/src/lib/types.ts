@@ -98,6 +98,7 @@ export type Portfolio = {
   projected_annual_income_usdc: number;
   portfolio_esg: number | null;
   earning_rate_per_sim_hour: number;
+  subscription: { plan: string; price_month: number; features: string[] } | null; // institutional investors
 };
 
 export type ActivityT = {

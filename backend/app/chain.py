@@ -68,6 +68,9 @@ class Chain:
             }
             if fn is not None:
                 tx = fn.build_transaction(base)
+                # Gas is estimated on the current state; a settlement landing just before this
+                # transaction can make it costlier (e.g. the first revenue for an asset), so add headroom
+                tx["gas"] = int(tx["gas"] * 1.3)
             else:
                 tx = {**base, "to": to, "gas": 21_000,
                       "maxFeePerGas": self.w3.eth.gas_price * 2, "maxPriorityFeePerGas": 0}

@@ -2,7 +2,7 @@
 
 import clsx from "clsx";
 import { motion } from "motion/react";
-import { ArrowDownLeft, ArrowUpRight, BadgeCheck, Coins, Landmark, Leaf, ShoppingCart, Wallet } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, BadgeCheck, Coins, FileText, Landmark, Leaf, ShoppingCart, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { BankDialog } from "@/components/BankDialog";
@@ -105,6 +105,23 @@ export default function PortfolioPage() {
           </div>
         </Card>
       </div>
+
+      {/* Institutional subscription: ESG & risk reports for every holding */}
+      {pf.subscription && (
+        <Card>
+          <SectionTitle title={tx("ESG ve risk raporları", "ESG & risk reports")}
+            hint={tx("Kurumsal abonelik: portföydeki her varlık için canlı veriden üretilen, yazdırılabilir rapor.",
+              "Institutional subscription: a printable report for every asset in the portfolio, built from live data.")}
+            right={<Badge tone="ai">{pf.subscription.plan} · {money(pf.subscription.price_month, { decimals: 0 })}/{tx("ay", "mo")}</Badge>} />
+          <div className="flex flex-wrap gap-2">
+            {pf.holdings.map((h) => (
+              <Link key={h.asset_id} href={`/producer/report/${h.asset_id}`}>
+                <Button variant="outline" className="py-1.5"><FileText className="size-4" />{h.name}</Button>
+              </Link>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {/* Holdings */}
       <Card>

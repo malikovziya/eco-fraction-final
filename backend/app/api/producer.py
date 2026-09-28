@@ -21,6 +21,13 @@ PLANS = {
                                                      "forecast", "api_access", "white_label"]},
 }
 PRODUCER_PLANS = {"solar": "Pro", "wind": "Enterprise"}
+# Institutional investors subscribe for ESG and risk reports on the assets they hold (demo contract)
+INSTITUTIONAL_PLAN = "Pro"
+INSTITUTIONAL_TITLE = "Institutional investor"
+
+
+def is_institutional(user: User) -> bool:
+    return user.role == "investor" and user.title == INSTITUTIONAL_TITLE
 # Third-party pipeline for the ESG-verification licence (business model 4.3 #3), clearly marked as pipeline
 LICENSING_PIPELINE = [
     {"client": "Regional utility (pilot)", "stage": "pilot", "annual_usd": 36_000},
@@ -91,8 +98,8 @@ def overview(user: User = Depends(require_role("producer")), s: Session = Depend
 @router.get("/producer/report/{asset_id}")
 def report(asset_id: str, user: User = Depends(current_user), s: Session = Depends(get_db)) -> dict:
     """Everything the printable ESG & risk report needs, in one call."""
-    if user.role not in ("producer", "signer"):
-        raise HTTPException(403, "Reports are available to producers and governance")
+    if user.role not in ("producer", "signer") and not is_institutional(user):
+        raise HTTPException(403, "Reports are available to producers, institutional investors and governance")
     p = platform()
     asset = p.assets.get(asset_id)
     if asset is None:
@@ -127,7 +134,8 @@ def economics(s: Session = Depends(get_db)) -> dict:
     secondary_volume = s.scalar(select(func.sum(Trade.cost_usdc))) or 0.0
     secondary_fees = s.scalar(select(func.sum(Trade.fee_usdc))) or 0.0
     trades = s.scalar(select(func.count()).select_from(Trade)) or 0
-    mrr = sum(PLANS[p]["price_month"] for p in PRODUCER_PLANS.values())
+    subscribers = {**PRODUCER_PLANS, "fund": INSTITUTIONAL_PLAN}
+    mrr = sum(PLANS[p]["price_month"] for p in subscribers.values())
     verified_mwh = (s.scalar(select(func.sum(Batch.energy_wh)).where(
         Batch.status.in_(("distributed", "released")))) or 0) / 1e6
     co2_t = verified_mwh * 1000 * GRID_CO2_KG_PER_KWH / 1000
@@ -142,7 +150,7 @@ def economics(s: Session = Depends(get_db)) -> dict:
         },
         "saas": {"mrr_usd": mrr, "arr_usd": mrr * 12,
                  "subscribers": [{"producer": k, "plan": v, "price_month": PLANS[v]["price_month"]}
-                                 for k, v in PRODUCER_PLANS.items()],
+                                 for k, v in subscribers.items()],
                  "plans": PLANS},
         "licensing": {"pipeline": LICENSING_PIPELINE, "pipeline_annual_usd": sum(x["annual_usd"] for x in LICENSING_PIPELINE)},
         "carbon": {"verified_co2_t": round(co2_t, 1), "annual_co2_t_portfolio": round(annual_co2_t),

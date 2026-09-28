@@ -391,7 +391,7 @@ Next.js 16 and TypeScript, with Tailwind, Recharts and Motion. It uses a dark "e
 
 **Business model (4 revenue streams):**
 1. **Transaction fee.** Live, read from the on-chain treasury. It looks large (about $600k) because the seeded anchor funds paid the 1% fee on about $60M of purchases. That's honest arithmetic; be ready to explain it.
-2. **SaaS subscriptions (demo contracts).** Basic free; Pro $490 per month (the solar producer); Enterprise $1,900 per month (the wind producer).
+2. **SaaS subscriptions (demo contracts).** Basic free; Pro $490 per month (the solar producer, and the Evergreen Climate Fund for ESG & risk reports); Enterprise $1,900 per month (the wind producer). Total $2,880 per month.
 3. **Licensing (pipeline).** Regional utility pilot $36k/year, green bond issuer $60k/year.
 4. **Carbon credits (future phase).** Portfolio CO₂ × $12 per tonne × a 5% platform share.
 
@@ -412,6 +412,7 @@ Why custodial: no MetaMask pop-ups on stage, and the right experience for non-cr
 | Persona | Role | Notes |
 |---|---|---|
 | Aylin Kaya | Investor | KYC done; $10,000 deposited, $8,000 invested (Gobustan 300, Khizi 250, Absheron 150, Sumgait 100 shares) |
+| Evergreen Climate Fund | Institutional investor | KYC done; $2M deposited, $1.6M invested (Khizi 60,000, Bilasuvar 50,000, Gobustan 30,000, Absheron 20,000 shares); Pro subscription, so its Portfolio page links to the ESG & risk report of every holding |
 | Caspian Solar Holdings | Producer | Owns the 4 solar assets; Pro plan |
 | Absheron Wind Energy | Producer | Owns the 2 wind assets; Enterprise plan |
 | Leyla Hasanova | Signer | Chief Risk Officer |

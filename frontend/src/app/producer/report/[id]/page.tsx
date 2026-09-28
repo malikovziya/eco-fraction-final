@@ -30,7 +30,7 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
   const { sim } = useLive();
   const { data: r, error } = useData<Report>(user ? `/producer/report/${id}` : null);
 
-  if (!user) return <p className="text-muted">{tx("Rapor için üretici olarak giriş yapın.", "Sign in as a producer to view reports.")}</p>;
+  if (!user) return <p className="text-muted">{tx("Rapor için üretici veya kurumsal yatırımcı olarak giriş yapın.", "Sign in as a producer or institutional investor to view reports.")}</p>;
   if (error) return <p className="text-alert">{error}</p>;
   if (!r) return <Skeleton className="h-[1000px]" />;
   const { E, S, G } = r.esg.pillars;
@@ -49,7 +49,13 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
   return (
     <div>
       <div className="mb-4 flex items-center justify-between print:hidden">
-        <Link href="/producer" className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-text"><ArrowLeft className="size-4" />{t("nav.producer")}</Link>
+        {user.role === "producer" ? (
+          <Link href="/producer" className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-text"><ArrowLeft className="size-4" />{t("nav.producer")}</Link>
+        ) : (
+          <Link href={user.role === "signer" ? "/governance" : "/portfolio"} className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-text">
+            <ArrowLeft className="size-4" />{user.role === "signer" ? t("nav.governance") : t("nav.portfolio")}
+          </Link>
+        )}
         <button onClick={() => window.print()} className="inline-flex items-center gap-2 rounded-xl bg-wind px-4 py-2 text-sm font-medium text-bg hover:bg-emerald-400">
           <Printer className="size-4" />{tx("PDF olarak indir", "Download as PDF")}
         </button>
